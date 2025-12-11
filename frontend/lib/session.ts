@@ -9,7 +9,7 @@ const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function createSession(userId: number, username: string, email: string) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  const session = await encrypt({ userId, username, email, expiresAt });
+  const session = await encrypt({ userId, username, email, expiresAt: expiresAt.getTime() });
 
   (await cookies()).set("session", session, {
     httpOnly: true,
@@ -25,7 +25,7 @@ export async function deleteSession() {
 }
 
 export async function encrypt(payload: SessionPayload) {
-  return new SignJWT(payload)
+  return new SignJWT(payload as any)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")

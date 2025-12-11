@@ -32,10 +32,11 @@ export interface StrapiUser {
 }
 
 export interface SessionPayload {
-  userId: number;
+  userId: number | string;
   username: string;
   email: string;
-  expiresAt: Date;
+  expiresAt?: Date | number | string;
+  [key: string]: any; // Index signature requerido por JWTPayload
 }
 
 export interface FormState {
