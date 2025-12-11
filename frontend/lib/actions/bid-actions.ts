@@ -14,6 +14,7 @@ interface BidFormState {
 export async function placeBidAction(
   auctionId: string,
   auctionTitle: string,
+  prevState: BidFormState,  // ✅ AGREGAR ESTE PARÁMETRO
   formData: FormData
 ): Promise<BidFormState> {
   try {
