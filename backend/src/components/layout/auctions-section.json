@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_layout_auctions_sections",
+  "info": {
+    "displayName": "Auctions Section",
+    "icon": "apps"
+  },
+  "options": {},
+  "attributes": {
+    "idd": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "text"
+    },
+    "cards": {
+      "type": "component",
+      "component": "layout.card",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}
