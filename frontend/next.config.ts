@@ -13,10 +13,6 @@ const nextConfig: NextConfig = {
   },
   // Deshabilitar source maps en desarrollo para evitar warnings
   productionBrowserSourceMaps: false,
-  experimental: {
-    // Turbopack configuration
-    turbo: {},
-  },
 };
 
 export default nextConfig;
