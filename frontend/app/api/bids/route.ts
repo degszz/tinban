@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if ("error" in result) {
       return NextResponse.json(
-        { error: result.error.message || "Error al crear la puja" },
+        { error: result.error?.message || "Error al crear la puja" },
         { status: 400 }
       );
     }

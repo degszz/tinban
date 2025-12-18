@@ -199,7 +199,7 @@ export default async function DashboardPage() {
         <div className="mb-8 ">
           <FavoritesSection 
             favorites={favoriteAuctions}
-            userId={user?.id || ""}
+            userId={user?.id?.toString() || ""}
           />
         </div>
 

@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { decrypt } from "@/lib/session";
-import { createBid, getBidsByAuction, getHighestBid } from "@/lib/services/bid-service";
+import { createBid, getBidsByAuction, getHighestBid } from "@/lib/services/bid-service-server";
 import { revalidatePath } from "next/cache";
 
 interface BidFormState {

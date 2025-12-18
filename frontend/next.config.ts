@@ -13,9 +13,10 @@ const nextConfig: NextConfig = {
   },
   // Deshabilitar source maps en desarrollo para evitar warnings
   productionBrowserSourceMaps: false,
+  // Configuración para evitar errores de prerendering
   experimental: {
-    // Turbopack configuration
-    turbo: {},
+    // Deshabilitar PPR temporalmente para evitar errores de build
+    ppr: false,
   },
 };
 

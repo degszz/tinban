@@ -38,6 +38,7 @@ export interface SessionPayload {
   username: string;
   email: string;
   expiresAt: Date;
+  [key: string]: any; // Index signature para compatibilidad con JWTPayload
 }
 
 export interface FormState {
@@ -47,6 +48,7 @@ export interface FormState {
     username?: string[];
     phone?: string[]; // Añadido
     confirmPassword?: string[];
+    identifier?: string[]; // Para signin
   };
   message?: string;
   data?: {

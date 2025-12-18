@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { StrapiErrors } from "./strapi-errors";
+import { FormState } from "@/lib/definitions";
 
-const INITIAL_STATE = {
+const INITIAL_STATE: FormState = {
   errors: {},
 };
 
