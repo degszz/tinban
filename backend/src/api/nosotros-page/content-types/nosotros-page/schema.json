@@ -1,0 +1,39 @@
+{
+  "kind": "singleType",
+  "collectionName": "nosotros_pages",
+  "info": {
+    "singularName": "nosotros-page",
+    "pluralName": "nosotros-pages",
+    "displayName": "Nosotros"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "aboutTitle": {
+      "type": "string"
+    },
+    "aboutDescription": {
+      "type": "text"
+    },
+    "howItWorksTitle": {
+      "type": "string"
+    },
+    "step1": {
+      "type": "string"
+    },
+    "step2": {
+      "type": "string"
+    },
+    "step3": {
+      "type": "string"
+    },
+    "step4": {
+      "type": "string"
+    },
+    "step5": {
+      "type": "string"
+    }
+  }
+}

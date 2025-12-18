@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_component_links",
+  "info": {
+    "displayName": "Link",
+    "icon": "dashboard"
+  },
+  "options": {},
+  "attributes": {
+    "href": {
+      "type": "string",
+      "default": "#"
+    },
+    "label": {
+      "type": "string"
+    },
+    "isExternal": {
+      "type": "boolean"
+    }
+  },
+  "config": {}
+}

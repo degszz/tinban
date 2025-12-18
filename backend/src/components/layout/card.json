@@ -1,0 +1,51 @@
+{
+  "collectionName": "components_layout_cards",
+  "info": {
+    "displayName": "Card",
+    "icon": "folder"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "quantity": {
+      "type": "string"
+    },
+    "measurements": {
+      "type": "string"
+    },
+    "badge": {
+      "type": "string"
+    },
+    "stat": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "closed",
+        "upcoming"
+      ]
+    },
+    "image": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "Price": {
+      "type": "integer"
+    },
+    "link": {
+      "type": "component",
+      "component": "component.link",
+      "repeatable": true
+    }
+  },
+  "config": {}
+}

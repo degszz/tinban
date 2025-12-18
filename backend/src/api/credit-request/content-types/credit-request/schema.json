@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "credit_requests",
+  "info": {
+    "singularName": "credit-request",
+    "pluralName": "credit-requests",
+    "displayName": "Credit Request",
+    "description": "Solicitudes de créditos de usuarios"
+  },
+  "options": {
+    "draftAndPublish": true,
+    "comment": ""
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "amount": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "reason": {
+      "type": "text"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "admin_notes": {
+      "type": "text"
+    }
+  }
+}
