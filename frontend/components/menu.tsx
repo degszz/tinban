@@ -27,7 +27,7 @@ export function Menu({ navigationLinks, isLoggedIn, username }: MenuProps) {
     closed: {
       x: "100%",
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 400,
         damping: 40,
       },
@@ -35,7 +35,7 @@ export function Menu({ navigationLinks, isLoggedIn, username }: MenuProps) {
     open: {
       x: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 400,
         damping: 40,
       },

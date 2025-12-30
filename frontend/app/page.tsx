@@ -81,7 +81,7 @@ export default async function Home() {
                 <AuctionsSection
                   key={index}
                   data={section}
-                  userId={session?.userId}
+                  userId={session?.userId?.toString()}
                   userName={session?.username}
                   userFavorites={userFavorites}
                 />

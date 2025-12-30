@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface BidFormState {
+  success?: boolean;
+  error?: string;
+}
+
 interface BidFormProps {
   auctionId: string;
   auctionTitle: string;
@@ -23,7 +28,12 @@ export function BidForm({
   const minBid = currentHighestBid + minBidIncrement;
 
   const placeBid = placeBidAction.bind(null, auctionId, auctionTitle);
-  const [state, formAction, pending] = useActionState(placeBid, {});
+  const [state, formAction, pending] = useActionState(
+    async (prevState: BidFormState, formData: FormData) => {
+      return placeBid(formData);
+    },
+    {}
+  );
 
   useEffect(() => {
     if (state.success) {

@@ -1,22 +1,33 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { signUpAction } from "@/lib/actions/auth-actions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { StrapiErrors } from "./strapi-errors";
+import { FormState } from "@/lib/definitions";
 
-const INITIAL_STATE = {
+const INITIAL_STATE: FormState = {
   errors: {},
 };
 
 export function SignUpForm() {
+  const router = useRouter();
   const [formState, formAction, pending] = useActionState(
     signUpAction,
     INITIAL_STATE
   );
+
+  // Redirect on successful registration
+  useEffect(() => {
+    if (formState.data?.jwt) {
+      router.push("/dashboard");
+      router.refresh();
+    }
+  }, [formState.data, router]);
 
   return (
     <div className="w-full max-w-md space-y-8">

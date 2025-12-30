@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
   },
   
   productionBrowserSourceMaps: false,
+<<<<<<< HEAD
   
   // Deshabilitar Console Ninja en producción
   webpack: (config, { dev, isServer }) => {
@@ -29,6 +30,12 @@ const nextConfig: NextConfig = {
       }
     }
     return config;
+=======
+  // Configuración para evitar errores de prerendering
+  experimental: {
+    // Deshabilitar PPR temporalmente para evitar errores de build
+    ppr: false,
+>>>>>>> 8adef910fab1961a8a7dadb05ed77fc31d6e18e7
   },
   
   // Configuración para Turbopack (Next.js 16+)

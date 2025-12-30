@@ -81,7 +81,11 @@ export async function signUpAction(
     responseData.user.email
   );
 
-  redirect("/dashboard");
+  // Devolver datos en lugar de redirect para que el cliente lo maneje
+  return {
+    errors: {},
+    data: responseData,
+  };
 }
 
 const signInSchema = z.object({
@@ -136,7 +140,11 @@ export async function signInAction(
     responseData.user.email
   );
 
-  redirect("/dashboard");
+  // Devolver datos en lugar de redirect para que el cliente lo maneje
+  return {
+    errors: {},
+    data: responseData,
+  };
 }
 
 export async function signOutAction() {
