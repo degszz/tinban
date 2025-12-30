@@ -1,0 +1,7 @@
+{
+  "suppressConsole": false,
+  "ninjaSuppressConsole": true,
+  "showInlineValues": true,
+  "showValueLabels": true,
+  "maxLogDepth": 5
+}

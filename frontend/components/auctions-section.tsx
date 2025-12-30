@@ -53,10 +53,8 @@ interface CardItem {
   link: CardLink;
   badge?: string;
   stat: 'active' | 'closed' | 'upcoming';
-  // 🆕 NUEVOS CAMPOS
   quantity?: string;
   measurements?: string;
-  // ⚠️ itemDescription NO se usa, se reutiliza el campo 'description' existente
 }
 
 interface AuctionsSectionProps {
@@ -70,6 +68,9 @@ interface AuctionsSectionProps {
   userName?: string;
   userFavorites?: string[];
 }
+
+// ⏱️ CONFIGURACIÓN DE POLLING
+const POLLING_INTERVAL = 60000; // 60 segundos (1 minuto) - Reducción significativa de requests
 
 // Componente de Carousel para las imágenes
 function CardImageCarousel({ images, title, badge, stat }: {
@@ -200,7 +201,7 @@ function CardImageCarousel({ images, title, badge, stat }: {
   );
 }
 
-// 🆕 Componente para los detalles del producto (Cantidad, Descripción, Medidas)
+// Componente para los detalles del producto
 function ProductDetails({ quantity, description, measurements }: {
   quantity?: string;
   description?: string;
@@ -269,11 +270,12 @@ function ProductDetails({ quantity, description, measurements }: {
 }
 
 // Componente de tarjeta de remate con sistema de pujas y créditos
-function AuctionCard({ card, userId, userName, initialIsFavorite }: { 
+function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits }: { 
   card: CardItem, 
   userId?: string, 
   userName?: string,
-  initialIsFavorite: boolean
+  initialIsFavorite: boolean,
+  sharedCredits: number
 }) {
   const router = useRouter();
   const images = Array.isArray(card.image) ? card.image : [card.image];
@@ -288,36 +290,29 @@ function AuctionCard({ card, userId, userName, initialIsFavorite }: {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Estado de créditos
-  const [userCredits, setUserCredits] = useState(0);
+  // 🔑 Usar créditos compartidos del padre
+  const [userCredits, setUserCredits] = useState(sharedCredits);
   const [showInsufficientCreditsDialog, setShowInsufficientCreditsDialog] = useState(false);
 
   const minIncrement = 100;
   const auctionId = card.documentId || card.id.toString();
 
-  // Cargar pujas y créditos al montar el componente
+  // 🔑 Sincronizar créditos con el padre
+  useEffect(() => {
+    setUserCredits(sharedCredits);
+  }, [sharedCredits]);
+
+  // ⏱️ POLLING: Actualizado a 30 segundos (reducido de 10)
   useEffect(() => {
     setIsLoading(true);
     loadBids();
-    if (userId) {
-      loadUserCredits();
-    }
 
-    // POLLING: Actualizar pujas cada 10 segundos
     const interval = setInterval(() => {
       loadBids();
-      if (userId) {
-        loadUserCredits();
-      }
-    }, 10000);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [auctionId, userId]);
-
-  const loadUserCredits = async () => {
-    const credits = await getUserCredits();
-    setUserCredits(credits);
-  };
+  }, [auctionId]);
 
   const loadBids = async () => {
     try {
@@ -388,11 +383,10 @@ function AuctionCard({ card, userId, userName, initialIsFavorite }: {
         if (result.newCredits !== undefined) {
           setUserCredits(result.newCredits);
           
+          // 🔑 Notificar al padre para actualizar créditos globales
           window.dispatchEvent(new CustomEvent('creditsUpdated', {
             detail: { credits: result.newCredits }
           }));
-        } else {
-          await loadUserCredits();
         }
 
         await loadBids();
@@ -445,7 +439,6 @@ function AuctionCard({ card, userId, userName, initialIsFavorite }: {
         </CardHeader>
 
         <CardContent className="space-y-3 pt-3">
-          {/* 🆕 DETALLES DEL PRODUCTO */}
           <ProductDetails 
             quantity={card.quantity}
             description={card.description}
@@ -662,6 +655,39 @@ function AuctionCard({ card, userId, userName, initialIsFavorite }: {
 }
 
 export function AuctionsSection({ data, userId, userName, userFavorites = [] }: AuctionsSectionProps) {
+  // 🔑 Estado compartido de créditos - una sola request
+  const [sharedCredits, setSharedCredits] = useState(0);
+
+  // 🔑 Cargar créditos UNA SOLA VEZ al inicio
+  useEffect(() => {
+    if (userId) {
+      loadUserCredits();
+      
+      // ⏱️ Actualizar créditos cada 30 segundos (reducido de constante)
+      const interval = setInterval(loadUserCredits, POLLING_INTERVAL);
+      return () => clearInterval(interval);
+    }
+  }, [userId]);
+
+  // 🔑 Escuchar eventos de actualización de créditos
+  useEffect(() => {
+    const handleCreditsUpdate = (event: any) => {
+      setSharedCredits(event.detail.credits);
+    };
+
+    window.addEventListener('creditsUpdated', handleCreditsUpdate);
+    return () => window.removeEventListener('creditsUpdated', handleCreditsUpdate);
+  }, []);
+
+  const loadUserCredits = async () => {
+    try {
+      const credits = await getUserCredits();
+      setSharedCredits(credits);
+    } catch (error) {
+      console.error("Error loading credits:", error);
+    }
+  };
+
   if (!data || !data.cards || data.cards.length === 0) {
     return null;
   }
@@ -694,6 +720,7 @@ export function AuctionsSection({ data, userId, userName, userFavorites = [] }: 
                 userId={userId}
                 userName={userName}
                 initialIsFavorite={isFavorite}
+                sharedCredits={sharedCredits}
               />
             );
           })}
