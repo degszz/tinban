@@ -6,9 +6,9 @@ import About from "@/components/about";
 
 import { AuctionsSection } from "@/components/auctions-section";
 import { cookies } from "next/headers";
-import { decrypt } from "@/lib/session";
 import { Footer } from "@/components/footer";
 import { getUserFavorites } from "@/lib/services/favorites-service";
+import { getUserMeService } from "@/lib/services/auth-service";
 
 
 export default async function Home() {
@@ -34,9 +34,25 @@ export default async function Home() {
     });
   }
 
-  // Obtener sesión del usuario
-  const cookie = (await cookies()).get("session")?.value;
-  const session = await decrypt(cookie);
+  // 🔧 OBTENER JWT DE STRAPI
+  const cookie = (await cookies()).get("strapi_jwt")?.value;
+  let session = null;
+
+  // Si hay JWT, obtener datos del usuario
+  if (cookie) {
+    try {
+      const userData = await getUserMeService(cookie);
+      if (!("error" in userData)) {
+        session = {
+          userId: userData.id,
+          username: userData.username,
+          email: userData.email,
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  }
 
   console.log('👤 User Session:', {
     userId: session?.userId,

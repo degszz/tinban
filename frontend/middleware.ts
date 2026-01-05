@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decrypt } from "@/lib/session";
 
 const protectedRoutes = ["/dashboard", "/profile"];
 const publicRoutes = ["/signin", "/signup"];
@@ -11,19 +10,16 @@ export async function middleware(req: NextRequest) {
   );
   const isPublicRoute = publicRoutes.includes(path);
 
-  // Obtener cookie desde el request
-  const cookie = req.cookies.get("session")?.value;
-  const session = await decrypt(cookie);
+  // 🔧 BUSCAR JWT DE STRAPI
+  const token = req.cookies.get("strapi_jwt")?.value;
 
-  if (isProtectedRoute && !session?.userId) {
+  // Si la ruta está protegida y no hay token → redirect a signin
+  if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/signin", req.nextUrl));
   }
 
-  if (
-    isPublicRoute &&
-    session?.userId &&
-    !req.nextUrl.pathname.startsWith("/dashboard")
-  ) {
+  // Si está en signin/signup Y tiene token → redirect a dashboard
+  if (isPublicRoute && token && !path.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }
 

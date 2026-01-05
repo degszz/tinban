@@ -67,21 +67,26 @@ export async function signUpAction(
     };
   }
 
-  (await cookies()).set("strapi_jwt", responseData.jwt, {
+  // 🔧 GUARDAR AMBAS COOKIES (para compatibilidad)
+  const cookieStore = await cookies();
+  
+  // Cookie de Strapi (para producción)
+  cookieStore.set("strapi_jwt", responseData.jwt, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60,
+    maxAge: 60 * 60 * 24 * 7, // 7 días
     sameSite: "lax",
     path: "/",
   });
 
+  // Cookie de Next.js (para local y compatibilidad)
   await createSession(
     responseData.user.id,
     responseData.user.username,
     responseData.user.email
   );
 
-  // Devolver datos en lugar de redirect para que el cliente lo maneje
+  // Devolver datos para el redirect en el cliente
   return {
     errors: {},
     data: responseData,
@@ -126,21 +131,26 @@ export async function signInAction(
     };
   }
 
-  (await cookies()).set("strapi_jwt", responseData.jwt, {
+  // 🔧 GUARDAR AMBAS COOKIES (para compatibilidad)
+  const cookieStore = await cookies();
+  
+  // Cookie de Strapi (para producción)
+  cookieStore.set("strapi_jwt", responseData.jwt, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60,
+    maxAge: 60 * 60 * 24 * 7, // 7 días
     sameSite: "lax",
     path: "/",
   });
 
+  // Cookie de Next.js (para local y compatibilidad)
   await createSession(
     responseData.user.id,
     responseData.user.username,
     responseData.user.email
   );
 
-  // Devolver datos en lugar de redirect para que el cliente lo maneje
+  // Devolver datos para el redirect en el cliente
   return {
     errors: {},
     data: responseData,
@@ -148,7 +158,8 @@ export async function signInAction(
 }
 
 export async function signOutAction() {
-  (await cookies()).delete("strapi_jwt");
+  const cookieStore = await cookies();
+  cookieStore.delete("strapi_jwt");
   await deleteSession();
   redirect("/");
 }

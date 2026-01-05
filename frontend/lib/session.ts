@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SessionPayload } from "@/lib/definitions";
+import { getUserMeService } from "@/lib/services/auth-service";
 
 const secretKey = process.env.NEXTAUTH_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
@@ -22,6 +23,7 @@ export async function createSession(userId: number, username: string, email: str
 
 export async function deleteSession() {
   (await cookies()).delete("session");
+  (await cookies()).delete("strapi_jwt");
 }
 
 export async function encrypt(payload: SessionPayload) {
@@ -32,37 +34,62 @@ export async function encrypt(payload: SessionPayload) {
     .sign(encodedKey);
 }
 
-export async function decrypt(session: string | undefined = "") {
+/**
+ * 🔧 Función decrypt mejorada - Verifica JWT de Strapi directamente
+ * @param token - JWT de Strapi (opcional)
+ * @returns Datos del usuario o null
+ */
+export async function decrypt(token?: string) {
   try {
-    if (!session) {
+    if (!token) {
       return null;
     }
+
+    // Verificar el token con Strapi
+    const userData = await getUserMeService(token);
     
-    const { payload } = await jwtVerify(session, encodedKey, {
-      algorithms: ["HS256"],
-    });
-    return payload as SessionPayload;
+    if ("error" in userData) {
+      return null;
+    }
+
+    return {
+      userId: userData.id,
+      username: userData.username,
+      email: userData.email,
+    };
   } catch (error) {
     // Silenciar el error en producción, solo loguear en desarrollo
     if (process.env.NODE_ENV === "development") {
-      console.log("Failed to verify session");
+      console.log("Failed to verify JWT with Strapi");
     }
     return null;
   }
 }
 
+/**
+ * Verifica la sesión del usuario usando el JWT de Strapi
+ */
 export async function verifySession() {
-  const cookie = (await cookies()).get("session")?.value;
-  const session = await decrypt(cookie);
+  const cookie = (await cookies()).get("strapi_jwt")?.value;
 
-  if (!session?.userId) {
+  if (!cookie) {
     redirect("/signin");
   }
 
-  return {
-    isAuth: true,
-    userId: session.userId,
-    username: session.username,
-    email: session.email,
-  };
+  try {
+    const userData = await getUserMeService(cookie);
+    
+    if ("error" in userData) {
+      redirect("/signin");
+    }
+
+    return {
+      isAuth: true,
+      userId: userData.id,
+      username: userData.username,
+      email: userData.email,
+    };
+  } catch (error) {
+    redirect("/signin");
+  }
 }

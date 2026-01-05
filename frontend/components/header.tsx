@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getStrapiMedia } from "@/lib/strapi";
 import { cookies } from "next/headers";
-import { decrypt } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Menu } from "@/components/menu";
@@ -41,22 +40,54 @@ export async function Header({ data }: HeaderProps) {
 
   const { logo, Link: navigationLinks } = data;
 
-  // Check if user is logged in
-  const cookie = (await cookies()).get("session")?.value;
-  const session = await decrypt(cookie);
-  const isLoggedIn = !!session?.userId;
-
-  // Obtener créditos del usuario si está logueado
+  // 🔧 Verificar sesión usando JWT de Strapi o cookie de Next.js
+  const cookieStore = await cookies();
+  const strapiJwt = cookieStore.get("strapi_jwt")?.value;
+  const sessionCookie = cookieStore.get("session")?.value;
+  
+  let session = null;
+  let isLoggedIn = false;
   let userCredits = 0;
-  if (isLoggedIn) {
+
+  // Intentar obtener datos del usuario con JWT de Strapi
+  if (strapiJwt) {
     try {
-      const jwtCookie = (await cookies()).get("strapi_jwt")?.value;
-      if (jwtCookie) {
-        const userData = await getUserMeService(jwtCookie);
+      const userData = await getUserMeService(strapiJwt);
+      if (!("error" in userData)) {
+        session = {
+          userId: userData.id,
+          username: userData.username,
+          email: userData.email,
+        };
+        isLoggedIn = true;
         userCredits = userData.credits || 0;
       }
     } catch (error) {
-      console.error("Error fetching user credits:", error);
+      console.error("Error fetching user with strapi_jwt:", error);
+    }
+  }
+
+  // Si no funcionó con Strapi JWT, intentar con session cookie (local)
+  if (!isLoggedIn && sessionCookie) {
+    try {
+      const { decrypt } = await import("@/lib/session");
+      const decryptedSession = await decrypt(sessionCookie);
+      if (decryptedSession?.userId) {
+        session = decryptedSession;
+        isLoggedIn = true;
+        
+        // Intentar obtener créditos si tenemos el JWT
+        if (strapiJwt) {
+          try {
+            const userData = await getUserMeService(strapiJwt);
+            userCredits = userData.credits || 0;
+          } catch (error) {
+            console.error("Error fetching credits:", error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error decrypting session:", error);
     }
   }
 
@@ -132,7 +163,7 @@ export async function Header({ data }: HeaderProps) {
               <>
                 <CreditsDisplay initialCredits={userCredits} />
                 <span className="text-sm text-gray-600">
-                  Hola, {session.username}
+                  Hola, {session?.username}
                 </span>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/dashboard">Menu</Link>
