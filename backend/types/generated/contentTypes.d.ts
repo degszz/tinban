@@ -534,6 +534,8 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
     layout: Schema.Attribute.Component<'layout.header', false>;
+    liveStreamActive: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -548,6 +550,7 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    youtubeLiveUrl: Schema.Attribute.String & Schema.Attribute.DefaultTo<''>;
   };
 }
 

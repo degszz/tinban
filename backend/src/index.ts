@@ -1,4 +1,6 @@
-// import type { Core } from '@strapi/strapi';
+
+import type { Core } from '@strapi/strapi';
+import { setupSocketIO } from './socket';
 
 export default {
   /**
@@ -7,7 +9,15 @@ export default {
    *
    * This gives you an opportunity to extend code.
    */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  register({ strapi }: { strapi: Core.Strapi }) {
+    // Configurar Socket.IO cuando Strapi se registre
+    const io = setupSocketIO(strapi.server.httpServer);
+    
+    // Hacer Socket.IO disponible globalmente en Strapi
+    (strapi as any).io = io;
+    
+    console.log('🚀 Socket.IO configurado correctamente');
+  },
 
   /**
    * An asynchronous bootstrap function that runs before

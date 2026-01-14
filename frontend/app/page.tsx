@@ -3,7 +3,8 @@ import { getStrapiData, homePageQuery } from "@/lib/strapi";
 import { HeroSection } from "@/components/hero-section";
 import { Header } from "@/components/header";
 import About from "@/components/about";
-
+import { YouTubeLiveChat } from "@/components/youtube-live-chat";
+import { LiveStreamLoginPrompt } from "@/components/live-stream-login-prompt";
 import { AuctionsSection } from "@/components/auctions-section";
 import { cookies } from "next/headers";
 import { Footer } from "@/components/footer";
@@ -27,7 +28,7 @@ export default async function Home() {
       console.log(`  Card ${index + 1}:`, {
         id: card.id,
         title: card.title,
-        price: card.Price,  // Cambiado a Price (con mayúscula)
+        price: card.Price,
         priceType: typeof card.Price,
         hasPrice: card.Price !== undefined,
       });
@@ -78,7 +79,7 @@ export default async function Home() {
     );
   }
 
-  const { layout, sections } = strapiData.data;
+  const { layout, sections, youtubeLiveUrl, liveStreamActive } = strapiData.data;
 
   return (
     <>
@@ -87,10 +88,35 @@ export default async function Home() {
 
       {/* Main Content */}
       <main>
+        {/* Hero Section - SIEMPRE PRIMERO */}
+        {sections && sections.map((section: any, index: number) => {
+          if (section.__component === 'layout.hero-section') {
+            return <HeroSection key={index} data={section} />;
+          }
+          return null;
+        })}
+
+        {/* YouTube Live Stream con Chat */}
+        {liveStreamActive && youtubeLiveUrl && (
+          <section className="py-8 bg-gray-50">
+            {session?.userId ? (
+              <YouTubeLiveChat
+                youtubeUrl={youtubeLiveUrl}
+                username={session.username || 'Usuario'}
+                userId={session.userId.toString()}
+              />
+            ) : (
+              <LiveStreamLoginPrompt />
+            )}
+          </section>
+        )}
+
+        {/* Resto de secciones (Auctions, etc.) */}
         {sections && sections.map((section: any, index: number) => {
           switch (section.__component) {
             case 'layout.hero-section':
-              return <HeroSection key={index} data={section} />;
+              // Ya renderizado arriba
+              return null;
 
             case 'layout.auctions-section':
               return (

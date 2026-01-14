@@ -28,6 +28,14 @@
       "type": "component",
       "component": "layout.header",
       "repeatable": false
+    },
+    "youtubeLiveUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "liveStreamActive": {
+      "type": "boolean",
+      "default": false
     }
   }
 }
