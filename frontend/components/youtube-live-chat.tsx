@@ -33,9 +33,15 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
     !!videoId
   );
 
-  // Scroll automático al último mensaje
+  // Scroll automático al último mensaje SOLO dentro del contenedor del chat
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'nearest', // No afecta el scroll de la página
+        inline: 'nearest'
+      });
+    }
   };
 
   useEffect(() => {

@@ -135,6 +135,7 @@ export default async function Home() {
         })}
 
       </main>
+      <div id="about" className=""></div>
       <About></About>
       <Footer></Footer>
     </>
