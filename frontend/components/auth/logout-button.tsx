@@ -17,7 +17,6 @@ export function LogoutButton() {
       className="gap-2"
     >
       <LogOut className="h-4 w-4" />
-      Cerrar Sesión
     </Button>
   );
 }

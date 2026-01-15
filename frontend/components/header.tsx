@@ -162,7 +162,7 @@ export async function Header({ data }: HeaderProps) {
             {isLoggedIn ? (
               <>
                 <CreditsDisplay initialCredits={userCredits} />
-                <span className="text-sm text-gray-600">
+                <span className="hidden lg:block text-sm text-gray-600">
                   Hola, {session?.username}
                 </span>
                 <Button asChild variant="outline" size="sm">
