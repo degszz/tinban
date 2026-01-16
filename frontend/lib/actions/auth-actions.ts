@@ -51,9 +51,10 @@ export async function signUpAction(prevState: any, formData: FormData) {
     const { username, email, password, phone } = validatedFields.data;
 
     console.log("📝 Registrando usuario:", { username, email, phone });
+    console.log('🌐 URL de registro:', `${STRAPI_URL}/api/custom-register`);
 
     // Registrar usuario (el backend maneja phone y confirmed)
-    const response = await fetch(`${STRAPI_URL}/api/auth/local/register`, {
+    const response = await fetch(`${STRAPI_URL}/api/custom-register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -197,6 +198,6 @@ export async function signOutAction() {
   } catch (error) {
     console.error("❌ Error al cerrar sesión:", error);
   }
-  
+
   redirect("/signin");
 }
