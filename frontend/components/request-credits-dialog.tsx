@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,20 +16,55 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CreditCard, MessageCircle, Loader2 } from "lucide-react";
+import { CreditCard, MessageCircle, Loader2, AlertCircle } from "lucide-react";
 import { requestCredits } from "@/lib/services/credits-service";
 
-const WHATSAPP_NUMBER = "5491234567890"; // Reemplaza con el número de WhatsApp real
+const WHATSAPP_NUMBER = "5491130744578";
 
-export function RequestCreditsDialog() {
+interface RequestCreditsDialogProps {
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+export function RequestCreditsDialog({ 
+  disabled = false, 
+  disabledReason 
+}: RequestCreditsDialogProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [isConfirmed, setIsConfirmed] = useState(true);
+
+  // Verificar confirmación del usuario
+  useEffect(() => {
+    checkUserConfirmation();
+  }, []);
+
+  const checkUserConfirmation = async () => {
+    try {
+      const response = await fetch('/api/auth/session', {
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsConfirmed(data.user?.confirmed === true);
+      }
+    } catch (error) {
+      console.error('Error checking confirmation:', error);
+    }
+  };
 
   const handleRequestCredits = async () => {
+    // Verificar confirmación antes de proceder
+    if (!isConfirmed) {
+      setError("Tu cuenta aún no ha sido verificada. Por favor, contacta al administrador.");
+      return;
+    }
+
     if (!amount || parseInt(amount) <= 0) {
       setError("Ingresa un monto válido");
       return;
@@ -38,21 +73,31 @@ export function RequestCreditsDialog() {
     setLoading(true);
     setError("");
 
-    const result = await requestCredits(parseInt(amount), reason);
+    try {
+      const result = await requestCredits(parseInt(amount), reason);
 
-    if (result.success) {
-      setSuccess(true);
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess(false);
-        setAmount("");
-        setReason("");
-      }, 2000);
-    } else {
-      setError(result.error || "Error al solicitar créditos");
+      if (result.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          setOpen(false);
+          setSuccess(false);
+          setAmount("");
+          setReason("");
+        }, 2000);
+      } else {
+        // Manejar error de verificación
+        if (result.error?.includes('verificada') || result.error?.includes('confirmed')) {
+          setError("Tu cuenta no está verificada. Contacta al administrador por WhatsApp.");
+          setIsConfirmed(false);
+        } else {
+          setError(result.error || "Error al solicitar créditos");
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Error al solicitar créditos");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleWhatsAppRequest = () => {
@@ -63,6 +108,29 @@ export function RequestCreditsDialog() {
     setAmount("");
     setReason("");
   };
+
+  // Si está deshabilitado por falta de confirmación
+  if (disabled || !isConfirmed) {
+    return (
+      <div className="relative group">
+        <Button 
+          className="w-full sm:w-auto" 
+          size="lg"
+          disabled
+        >
+          <CreditCard className="h-5 w-5 mr-2" />
+          🔒 Solicitar Créditos
+        </Button>
+        {disabledReason && (
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block">
+            <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+              {disabledReason}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -119,7 +187,8 @@ export function RequestCreditsDialog() {
 
           {/* Mensajes de estado */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3">
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <p className="text-sm">{error}</p>
             </div>
           )}
@@ -127,6 +196,15 @@ export function RequestCreditsDialog() {
           {success && (
             <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3">
               <p className="text-sm font-medium">¡Solicitud enviada con éxito!</p>
+            </div>
+          )}
+
+          {/* Advertencia si no está confirmado */}
+          {!isConfirmed && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3">
+              <p className="text-sm font-medium">
+                ⚠️ Tu cuenta no está verificada. Contacta al administrador.
+              </p>
             </div>
           )}
         </div>
@@ -146,7 +224,7 @@ export function RequestCreditsDialog() {
 
           <Button
             onClick={handleRequestCredits}
-            disabled={loading || !amount || parseInt(amount) <= 0}
+            disabled={loading || !amount || parseInt(amount) <= 0 || !isConfirmed}
             className="w-full sm:w-auto"
           >
             {loading ? (

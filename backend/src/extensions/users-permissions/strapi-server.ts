@@ -3,6 +3,9 @@ export default (plugin: any) => {
   
   const originalRegister = plugin.controllers.auth.register;
 
+  // ============================================
+  // REGISTRO PERSONALIZADO CON PHONE Y CONFIRMED: FALSE
+  // ============================================
   plugin.controllers.auth.register = async (ctx: any) => {
     console.log('📥 INTERCEPTADO - Request body:', ctx.request.body);
     
@@ -44,33 +47,45 @@ export default (plugin: any) => {
       // Ejecutar registro original
       await originalRegister(ctx);
 
-      console.log('✅ Usuario registrado, agregando phone');
+      console.log('✅ Usuario registrado, agregando phone y marcando como NO confirmado');
 
-      // Actualizar phone después de crear el usuario
+      // Actualizar phone Y confirmed después de crear el usuario
       if (ctx.response.body && ctx.response.body.user) {
         const userId = ctx.response.body.user.id;
 
-        console.log('💾 Actualizando user', userId, 'con phone:', phone);
+        console.log('💾 Actualizando user', userId, 'con phone:', phone, 'y confirmed: false');
 
-        // @ts-ignore - phone es un campo custom
-        await strapi.entityService.update(
+        // ✅ Actualizar phone Y marcar como NO confirmado
+        const updatedUser = await strapi.entityService.update(
           "plugin::users-permissions.user",
           userId,
           {
-            data: { phone },
+            data: { 
+              phone,
+              confirmed: false, // ✅ CRÍTICO: Usuario NO confirmado por defecto
+            },
           }
         );
 
-        // Agregar phone a la respuesta
+        // Actualizar respuesta con los datos correctos
         ctx.response.body.user.phone = phone;
+        ctx.response.body.user.confirmed = false;
         
-        console.log('✅ Phone agregado exitosamente');
+        console.log('✅ Usuario actualizado:', {
+          id: userId,
+          username: updatedUser.username,
+          phone: updatedUser.phone,
+          confirmed: updatedUser.confirmed
+        });
       }
     } catch (error: any) {
       console.log('❌ ERROR en registro:', error.message);
+      console.error('Stack:', error.stack);
       ctx.badRequest(error.message || "Error al registrar usuario");
     }
   };
 
+  console.log('✅ Extension users-permissions configurada correctamente');
+  
   return plugin;
 };

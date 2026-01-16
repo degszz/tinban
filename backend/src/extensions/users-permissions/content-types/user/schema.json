@@ -9,9 +9,9 @@
     "displayName": "User"
   },
   "options": {
-    "draftAndPublish": false
+    "draftAndPublish": false,
+    "timestamps": true
   },
-  "pluginOptions": {},
   "attributes": {
     "username": {
       "type": "string",
@@ -24,7 +24,8 @@
       "type": "email",
       "minLength": 6,
       "configurable": false,
-      "required": true
+      "required": true,
+      "unique": true
     },
     "provider": {
       "type": "string",
@@ -68,16 +69,18 @@
     },
     "phone": {
       "type": "string",
+      "required": false,
       "minLength": 10,
       "maxLength": 15
     },
     "credits": {
       "type": "integer",
       "default": 0,
-      "min": 0
+      "required": false
     },
     "favorites": {
-      "type": "json"
+      "type": "json",
+      "default": []
     }
   }
 }

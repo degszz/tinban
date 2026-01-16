@@ -32,7 +32,7 @@ export default [
       enabled: true,
       origin: [
         process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
-        'http://localhost:3000', // Para desarrollo local
+        'http://localhost:3000',
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
@@ -45,6 +45,8 @@ export default [
   'strapi::session',
   'strapi::favicon',
   'strapi::public',
-  'global::phone-register',
-  'global::credit-approval',
+  // ❌ TODOS LOS MIDDLEWARES PERSONALIZADOS COMENTADOS TEMPORALMENTE
+  // 'global::phone-register',
+  // 'global::credit-approval',
+  // 'global::verification-check',
 ];

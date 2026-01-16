@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { decrypt } from "@/lib/session";
-import { createBid, getBidsByAuction } from "@/lib/services/bid-service-server";
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
@@ -18,48 +16,111 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const bids = await getBidsByAuction(auctionId);
+    console.log("📥 GET /api/bids - Fetching bids for auction:", auctionId);
+
+    // Obtener bids directamente desde Strapi (sin autenticación requerida para lectura)
+    const strapiResponse = await fetch(
+      `${STRAPI_URL}/api/bids?filters[auction_id][$eq]=${auctionId}&populate=user&sort[0]=amount:desc&sort[1]=createdAt:desc`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    console.log("📡 Strapi response status:", strapiResponse.status);
+
+    if (!strapiResponse.ok) {
+      console.error("❌ Error from Strapi:", strapiResponse.statusText);
+      return NextResponse.json({ bids: [] }, { status: 200 });
+    }
+
+    const data = await strapiResponse.json();
+    console.log("✅ Bids data received:", data.data?.length || 0, "bids");
+
+    // Transformar datos de Strapi al formato esperado
+    const bids = data.data?.map((bid: any) => ({
+      id: bid.id,
+      amount: parseFloat(bid.amount),
+      userId: bid.user?.id?.toString() || "unknown",
+      userName: bid.user?.username || "Usuario",
+      timestamp: bid.createdAt || bid.bidDate,
+      auctionId: bid.auction_id,
+      status: bid.status,
+    })) || [];
+
+    console.log("📤 Returning bids:", bids);
 
     return NextResponse.json({ bids }, { status: 200 });
   } catch (error) {
-    console.error("GET /api/bids error:", error);
+    console.error("❌ GET /api/bids error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { bids: [], error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// POST - Crear una nueva puja
+// POST - Crear una nueva puja (ya existente, mantener)
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     
-    // Verificar sesión del usuario
-    const sessionCookie = cookieStore.get("session")?.value;
-    const session = await decrypt(sessionCookie);
+    // 🔑 Obtener JWT de Strapi (prioridad)
+    const strapiJWT = cookieStore.get("strapi_jwt")?.value;
 
-    if (!session?.userId) {
+    if (!strapiJWT) {
+      console.log('❌ No hay JWT de Strapi');
       return NextResponse.json(
         { error: "No autenticado. Inicia sesión para pujar." },
         { status: 401 }
       );
     }
 
-    // Obtener JWT de Strapi
-    const strapiJWT = cookieStore.get("strapi_jwt")?.value;
+    console.log('✅ JWT de Strapi encontrado');
 
-    if (!strapiJWT) {
+    // ✅ Verificar que el usuario esté confirmado
+    try {
+      const userResponse = await fetch(`${STRAPI_URL}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${strapiJWT}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        console.log('❌ Error al obtener datos del usuario');
+        return NextResponse.json(
+          { error: "Error al verificar usuario" },
+          { status: 401 }
+        );
+      }
+
+      const userData = await userResponse.json();
+      
+      if (!userData.confirmed) {
+        console.log('❌ Usuario no confirmado:', userData.username);
+        return NextResponse.json(
+          { 
+            error: "Tu cuenta no está verificada. Contacta al administrador para verificar tu cuenta.",
+            requiresVerification: true 
+          },
+          { status: 403 }
+        );
+      }
+
+      console.log('✅ Usuario confirmado:', userData.username);
+    } catch (verificationError) {
+      console.error('❌ Error en verificación:', verificationError);
       return NextResponse.json(
-        { error: "Sesión de Strapi no encontrada" },
-        { status: 401 }
+        { error: "Error al verificar estado de cuenta" },
+        { status: 500 }
       );
     }
 
     const body = await request.json();
     const { auctionId, amount, auctionTitle } = body;
 
-    // Validar datos
     if (!auctionId || !amount || !auctionTitle) {
       return NextResponse.json(
         { error: "Faltan datos requeridos" },
@@ -74,33 +135,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear la puja en Strapi
-    // El backend de Strapi se encarga de:
-    // 1. Verificar créditos suficientes
-    // 2. Descontar créditos del usuario
-    // 3. Devolver créditos al usuario anterior si fue superado
-    // 4. Crear la bid
-    const result = await createBid(
-      {
-        amount,
-        auction_id: auctionId,
-        auction_title: auctionTitle,
-      },
-      strapiJWT
-    );
+    console.log('📤 Creando puja:', { auctionId, amount, auctionTitle });
 
-    if ("error" in result) {
+    const result = await fetch(`${STRAPI_URL}/api/bids`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${strapiJWT}`,
+      },
+      body: JSON.stringify({
+        data: {
+          amount,
+          auction_id: auctionId,
+          auction_title: auctionTitle,
+        },
+      }),
+    });
+
+    const resultData = await result.json();
+
+    if (!result.ok) {
+      console.error('❌ Error al crear puja:', resultData);
+      
+      if (resultData.error?.message?.includes('verificada') || 
+          resultData.error?.message?.includes('confirmed')) {
+        return NextResponse.json(
+          { 
+            error: "Tu cuenta no está verificada. Contacta al administrador.",
+            requiresVerification: true 
+          },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
-        { error: result.error?.message || "Error al crear la puja" },
+        { error: resultData.error?.message || "Error al crear la puja" },
         { status: 400 }
       );
     }
 
+    console.log('✅ Puja creada exitosamente');
+
     return NextResponse.json(
       { 
         success: true, 
-        bid: result.data,
-        newCredits: result.data.userCredits,
+        bid: resultData.data,
+        newCredits: resultData.data?.userCredits,
         message: "Puja realizada con éxito"
       },
       { status: 201 }

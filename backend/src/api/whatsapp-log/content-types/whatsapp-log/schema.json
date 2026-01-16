@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "whatsapp_logs",
+  "info": {
+    "singularName": "whatsapp-log",
+    "pluralName": "whatsapp-logs",
+    "displayName": "WhatsApp Log",
+    "description": "Registro de mensajes de WhatsApp enviados por usuarios"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "userId": {
+      "type": "string",
+      "required": true
+    },
+    "sentAt": {
+      "type": "datetime",
+      "required": true
+    }
+  }
+}
