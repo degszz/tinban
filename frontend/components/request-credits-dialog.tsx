@@ -135,7 +135,7 @@ export function RequestCreditsDialog({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button className="w-full sm:w-auto" size="lg">
+        <Button className="w-full sm:w-auto hover:cursor-pointer hover:scale-110 transition-all duration-200" size="lg">
           <CreditCard className="h-5 w-5 mr-2" />
           Solicitar Créditos
         </Button>

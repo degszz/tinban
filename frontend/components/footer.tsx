@@ -3,7 +3,7 @@ import { Facebook, Instagram } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="w-full text-serif flex flex-col justify-between h-[300px] md:h-[250px] text-black">
+    <footer className="w-full text-serif bg-[#F9FAFB] flex flex-col justify-between h-[300px] md:h-[250px] text-black">
       <div className="min-h-[150px] flex justify-center">
         <div className="text-start lg:text-left max-w-[350px] md:max-w-none lg:min-w-[800px]">
           <div className="w-full py-6">
@@ -41,7 +41,7 @@ export function Footer() {
 
       <div className="h-[50px] w-full border-t-2 border-kai-950 flex justify-center items-center">
         <p>
-          <strong>Tinban Remates ©™</strong>
+          Tinban Remates ©™
         </p>
       </div>
     </footer>

@@ -18,9 +18,9 @@ export async function GET(request: NextRequest) {
 
     console.log("📥 GET /api/bids - Fetching bids for auction:", auctionId);
 
-    // Obtener bids directamente desde Strapi (sin autenticación requerida para lectura)
+    // Obtener bids activas desde Strapi (filtrar por status=active)
     const strapiResponse = await fetch(
-      `${STRAPI_URL}/api/bids?filters[auction_id][$eq]=${auctionId}&populate=user&sort[0]=amount:desc&sort[1]=createdAt:desc`,
+      `${STRAPI_URL}/api/bids?filters[auction_id][$eq]=${auctionId}&filters[status][$eq]=active&populate=user&sort[0]=amount:desc&sort[1]=createdAt:desc`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { auctionId, amount, auctionTitle } = body;
+    const { auctionId, amount, auctionTitle, requiresApproval } = body;
 
     if (!auctionId || !amount || !auctionTitle) {
       return NextResponse.json(
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📤 Creando puja:', { auctionId, amount, auctionTitle });
+    console.log('📤 Creando puja:', { auctionId, amount, auctionTitle, requiresApproval });
 
     const result = await fetch(`${STRAPI_URL}/api/bids`, {
       method: "POST",
@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
           amount,
           auction_id: auctionId,
           auction_title: auctionTitle,
+          requires_approval: requiresApproval || false,
         },
       }),
     });
@@ -176,11 +177,14 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Puja creada exitosamente');
 
+    // Extraer newCredits del resultado - puede venir en data.userCredits o userCredits
+    const newCredits = resultData.data?.userCredits ?? resultData.userCredits;
+
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         bid: resultData.data,
-        newCredits: resultData.data?.userCredits,
+        newCredits,
         message: "Puja realizada con éxito"
       },
       { status: 201 }

@@ -4,31 +4,49 @@
   "info": {
     "singularName": "credit-request",
     "pluralName": "credit-requests",
-    "displayName": "Credit Request",
+    "displayName": "Solicitudes de Creditos",
     "description": "Solicitudes de créditos de usuarios"
   },
   "options": {
-    "draftAndPublish": true,
-    "comment": ""
+    "draftAndPublish": true
   },
-  "pluginOptions": {},
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
     "amount": {
       "type": "integer",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
       "required": true,
       "min": 1
     },
     "reason": {
-      "type": "text"
+      "type": "text",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     },
     "status": {
       "type": "enumeration",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "default": "pending",
       "enum": [
         "pending",
         "approved",
         "rejected"
-      ],
-      "default": "pending"
+      ]
     },
     "user": {
       "type": "relation",
@@ -36,7 +54,12 @@
       "target": "plugin::users-permissions.user"
     },
     "admin_notes": {
-      "type": "text"
+      "type": "text",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     }
   }
 }

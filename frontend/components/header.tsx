@@ -32,6 +32,7 @@ interface HeaderProps {
 
 export async function Header({ data }: HeaderProps) {
   console.log("Header received data:", JSON.stringify(data, null, 2));
+  
 
   if (!data) {
     console.warn("No header data provided");
@@ -124,7 +125,7 @@ export async function Header({ data }: HeaderProps) {
 
           {/* Desktop Navigation */}
           {navigationLinks && navigationLinks.length > 0 && (
-            <ul className="hidden md:flex items-center space-x-8">
+            <ul className="hidden lg:flex items-center space-x-8">
               {navigationLinks.map((link) => {
                 const isExternal = link.isExternal === true;
 

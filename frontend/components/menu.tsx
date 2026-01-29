@@ -23,6 +23,8 @@ export function Menu({ navigationLinks, isLoggedIn, username }: MenuProps) {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  let isAdmin = false; // 👈 NUEVO: Variable para determinar si es admin
+
   const menuVariants = {
     closed: {
       x: "100%",
@@ -166,10 +168,20 @@ export function Menu({ navigationLinks, isLoggedIn, username }: MenuProps) {
                   </motion.div>
                 );
               })}
-            </nav>
+
+              {/* 🔐 ADMIN ONLY - Botón visible solo para administradores */}
+              {isAdmin && (
+                <Link
+                  href="/admin/live-stream"
+                  className="w-full text-center text-black border bg-[#fadc70] border-[#E5E5E5] hover:bg-[#f0b100] py-2 flex h-fit justify-center items-center rounded-md hover:scale-105 transition-all duration-200 font-medium"
+                >
+                  Administrador
+                </Link>
+              )}
+          </nav>
           </motion.div>
         )}
-      </AnimatePresence>
+    </AnimatePresence >
     </>
   );
 }

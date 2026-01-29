@@ -8,7 +8,8 @@ import { getStrapiData, homePageQuery } from "@/lib/strapi";
 import { FavoritesSection } from "@/components/favorites-section";
 import { VerificationBanner } from "@/components/verification-banner";
 import { cookies } from "next/headers";
-import { Coins, AlertCircle } from "lucide-react";
+import { Coins, AlertCircle, Shield } from "lucide-react";
+import { isUserAdmin } from "@/lib/utils/check-admin"; // 👈 Importar la función
 
 export default async function DashboardPage() {
   const user = await getUser();
@@ -17,13 +18,15 @@ export default async function DashboardPage() {
   let userCredits = 0;
   let isConfirmed = false;
   let userData = null;
+  let isAdmin = false; // 👈 NUEVO: Variable para determinar si es admin
   
   try {
     const jwtCookie = (await cookies()).get("strapi_jwt")?.value;
     if (jwtCookie) {
       userData = await getUserMeService(jwtCookie);
       userCredits = userData.credits || 0;
-      isConfirmed = userData.confirmed === true; // ✅ Obtener estado de confirmación
+      isConfirmed = userData.confirmed === true;
+      isAdmin = isUserAdmin(userData); // 👈 NUEVO: Verificar si es admin
     }
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -48,14 +51,14 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* 🔔 Banner de Verificación - NUEVO */}
-        <VerificationBanner 
-          isConfirmed={isConfirmed} 
+        {/* 🔔 Banner de Verificación */}
+        <VerificationBanner
+          isConfirmed={isConfirmed}
           userName={user?.username}
         />
 
         {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
               Menu
@@ -64,27 +67,50 @@ export default async function DashboardPage() {
               Bienvenido de nuevo, {user?.username}!
             </p>
           </div>
-          
-          {/* Botón de Solicitar Créditos - Deshabilitado si no está confirmado */}
-          {isConfirmed ? (
-            <RequestCreditsDialog />
-          ) : (
-            <div className="relative group">
-              <Button 
-                className="w-full sm:w-auto opacity-50 cursor-not-allowed" 
-                size="lg"
-                disabled
-              >
-                <Coins className="h-5 w-5 mr-2" />
-                🔒 Solicitar Créditos
-              </Button>
-              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
-                <div className="bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
-                  Verifica tu cuenta para solicitar créditos
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+          <div className={`grid gap-4 ${isAdmin ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3'}`}>
+            {/* Botón de Solicitar Créditos - Deshabilitado si no está confirmado */}
+            {isConfirmed ? (
+              <RequestCreditsDialog />
+            ) : (
+              <div className="relative group">
+                <Button
+                  className="w-full gap-4 opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  <Coins className="h-5 w-5 mr-2" />
+                  🔒 Solicitar Créditos
+                </Button>
+                <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
+                  <div className="bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap shadow-lg">
+                    Verifica tu cuenta para solicitar créditos
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/">Ver Subastas</Link>
+            </Button>
+
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/profile">Mi Perfil</Link>
+            </Button>
+            
+            {/* 🔐 ADMIN ONLY - Botón visible solo para administradores */}
+            {isAdmin && (
+              <Link 
+                href="/admin/live-stream" 
+                className="w-full text-center text-black border bg-[#fadc70] border-[#E5E5E5] hover:bg-[#f0b100] py-2 flex h-fit justify-center items-center rounded-md hover:scale-105 transition-all duration-200 font-medium"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                Administrador
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Credits Card */}
@@ -101,8 +127,8 @@ export default async function DashboardPage() {
                 ${userCredits.toLocaleString()}
               </p>
               <p className="mt-2 text-sm text-white">
-                {isConfirmed 
-                  ? "Disponibles para pujar" 
+                {isConfirmed
+                  ? "Disponibles para pujar"
                   : "⚠️ Verifica tu cuenta para usar créditos"}
               </p>
             </div>
@@ -118,7 +144,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Estado de Verificación - NUEVO */}
+        {/* Estado de Verificación */}
         {!isConfirmed && (
           <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-6 rounded-lg mb-8 shadow-md">
             <div className="flex items-start gap-3">
@@ -272,11 +298,10 @@ export default async function DashboardPage() {
             {/* Estado de Verificación */}
             <div className="flex items-center">
               <span className="text-gray-600 dark:text-gray-400 w-32">Estado:</span>
-              <span className={`font-medium flex items-center gap-2 ${
-                isConfirmed 
-                  ? 'text-green-600 dark:text-green-400' 
-                  : 'text-orange-600 dark:text-orange-400'
-              }`}>
+              <span className={`font-medium flex items-center gap-2 ${isConfirmed
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-orange-600 dark:text-orange-400'
+                }`}>
                 {isConfirmed ? (
                   <>
                     <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
@@ -290,30 +315,26 @@ export default async function DashboardPage() {
                 )}
               </span>
             </div>
+            
+            {/* 🔐 Mostrar rol de Admin si aplica */}
+            {isAdmin && (
+              <div className="flex items-center">
+                <span className="text-gray-600 dark:text-gray-400 w-32">Rol:</span>
+                <span className="font-medium flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                  <Shield className="w-4 h-4" />
+                  Administrador
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Favoritos Section */}
         <div className="mb-8">
-          <FavoritesSection 
+          <FavoritesSection
             favorites={favoriteAuctions}
             userId={user?.id?.toString() || ""}
           />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Acciones Rápidas
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button asChild className="w-full">
-              <Link href="/">Ver Subastas</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/profile">Mi Perfil</Link>
-            </Button>
-          </div>
         </div>
       </div>
     </div>

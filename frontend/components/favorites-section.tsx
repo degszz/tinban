@@ -616,17 +616,6 @@ function FavoriteAuctionCard({ card, userId, userName }: {
             </div>
           )}
         </CardContent>
-
-        <CardFooter>
-          {card.link && (
-            <a
-              href={card.link.href}
-              className="w-full cursor-pointer bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center font-medium text-sm"
-            >
-              Ver Lote
-            </a>
-          )}
-        </CardFooter>
       </Card>
 
       {/* Dialog de créditos insuficientes */}
@@ -842,18 +831,7 @@ function FavoriteAuctionCard({ card, userId, userName }: {
                 </div>
               )}
 
-              {/* Botón Ver Lote */}
-              {card.link && (
-                <Button
-                  asChild
-                  className="w-full cursor-pointer"
-                  size="lg"
-                >
-                  <a href={card.link.href}>
-                    Ver Lote Completo
-                  </a>
-                </Button>
-              )}
+
             </div>
           </div>
         </DialogContent>
@@ -889,8 +867,8 @@ export function FavoritesSection({ favorites, userId, userName }: FavoritesSecti
     return (
       <Card className="bg-white dark:bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-6 w-6 text-red-500 fill-red-500" />
+          <CardTitle className="flex items-center gap-2 pt-5">
+            <Heart className="h-6 w-6 text-red-500 fill-red-500 " />
             Mis Favoritos
           </CardTitle>
         </CardHeader>

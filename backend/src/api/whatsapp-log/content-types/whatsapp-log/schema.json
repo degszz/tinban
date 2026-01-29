@@ -4,20 +4,34 @@
   "info": {
     "singularName": "whatsapp-log",
     "pluralName": "whatsapp-logs",
-    "displayName": "WhatsApp Log",
+    "displayName": "WhatsApp Mensajes",
     "description": "Registro de mensajes de WhatsApp enviados por usuarios"
   },
   "options": {
     "draftAndPublish": false
   },
-  "pluginOptions": {},
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
   "attributes": {
     "userId": {
       "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
       "required": true
     },
     "sentAt": {
       "type": "datetime",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
       "required": true
     }
   }

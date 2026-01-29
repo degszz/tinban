@@ -4,7 +4,7 @@
   "info": {
     "singularName": "bid",
     "pluralName": "bids",
-    "displayName": "Bid",
+    "displayName": "Subastas",
     "description": "Pujas de usuarios en remates"
   },
   "options": {
@@ -31,16 +31,20 @@
     },
     "status": {
       "type": "enumeration",
+      "default": "pending",
       "enum": [
+        "pending",
         "active",
         "winner",
         "outbid"
-      ],
-      "default": "active"
+      ]
     },
     "bidDate": {
-      "type": "datetime",
-      "default": null
+      "type": "datetime"
+    },
+    "amount_charged": {
+      "type": "decimal",
+      "min": 0
     }
   }
 }

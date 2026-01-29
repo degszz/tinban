@@ -9,12 +9,17 @@ export default () => ({
       register: {
         allowRegister: true,
       },
+      i18n: {
+        defaultLocale: 'es',
+        locales: ['es', 'en'],
+      },
       email: {
         // ✅ Desactivar confirmación automática
         confirmation: {
           enabled: false, // No auto-confirmar usuarios
         },
       },
+      
     },
   },
 });

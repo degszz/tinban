@@ -14,7 +14,7 @@ export default factories.createCoreController('api::bid.bid', ({ strapi }) => ({
         return ctx.unauthorized('Debes estar autenticado para pujar');
       }
 
-      const { amount, auction_id, auction_title } = ctx.request.body.data;
+      const { amount, auction_id, auction_title, requires_approval } = ctx.request.body.data;
 
       // Validar que el monto sea mayor a 0
       if (!amount || amount <= 0) {
@@ -32,11 +32,11 @@ export default factories.createCoreController('api::bid.bid', ({ strapi }) => ({
 
       const currentCredits = (userWithCredits as any)?.credits || 0;
 
-      // 🔍 OBTENER ÚLTIMA PUJA DEL REMATE (de cualquier usuario)
+      // 🔍 OBTENER ÚLTIMA PUJA DEL REMATE (de cualquier usuario) - buscar activas Y pending
       const lastBid = await strapi.db.query('api::bid.bid').findOne({
-        where: { 
+        where: {
           auction_id,
-          status: 'active' // 🔑 Solo buscar pujas activas
+          status: { $in: ['active', 'pending'] } // 🔑 Buscar pujas activas Y pendientes
         },
         orderBy: { amount: 'desc' },
       });
@@ -46,20 +46,21 @@ export default factories.createCoreController('api::bid.bid', ({ strapi }) => ({
         return ctx.badRequest(`La puja debe ser mayor a $${lastBid.amount}`);
       }
 
-      // 🔍 VERIFICAR SI EL USUARIO YA TIENE UNA PUJA ACTIVA EN ESTE REMATE
+      // 🔍 VERIFICAR SI EL USUARIO YA TIENE UNA PUJA ACTIVA O PENDIENTE EN ESTE REMATE
       const userActiveBid = await strapi.db.query('api::bid.bid').findOne({
-        where: { 
+        where: {
           auction_id,
           user: user.id,
-          status: 'active'
+          status: { $in: ['active', 'pending'] } // 🔑 Buscar activas Y pendientes
         },
+        orderBy: { amount: 'desc' },
       });
 
       // 💰 CALCULAR CUÁNTO DEBE PAGAR
       let amountToCharge = amount;
-      
+
       if (userActiveBid) {
-        // Si ya tiene una puja activa, solo paga la diferencia
+        // Si ya tiene una puja activa o pendiente, solo paga la diferencia
         amountToCharge = amount - userActiveBid.amount;
       }
 
@@ -131,15 +132,18 @@ export default factories.createCoreController('api::bid.bid', ({ strapi }) => ({
         });
       }
 
-      // ✅ CREAR LA NUEVA PUJA
+      // ✅ CREAR LA NUEVA PUJA - status depende de requires_approval
+      const bidStatus = requires_approval ? 'pending' : 'active';
+
       const newBid = await strapi.db.query('api::bid.bid').create({
         data: {
           amount,
           auction_id,
           auction_title,
           user: user.id,
-          status: 'active',
+          status: bidStatus, // 🔑 'pending' si requiere aprobacion, 'active' si es automatico
           bidDate: new Date(),
+          amount_charged: amountToCharge, // 💰 Guardar el monto cobrado
         },
         populate: ['user'],
       });

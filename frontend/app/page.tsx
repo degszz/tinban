@@ -40,6 +40,7 @@ export default async function Home() {
   let session = null;
 
   // Si hay JWT, obtener datos del usuario
+  let userCredits = 0;
   if (cookie) {
     try {
       const userData = await getUserMeService(cookie);
@@ -49,6 +50,7 @@ export default async function Home() {
           username: userData.username,
           email: userData.email,
         };
+        userCredits = userData.credits || 0;
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -79,7 +81,50 @@ export default async function Home() {
     );
   }
 
-  const { layout, sections, youtubeLiveUrl, liveStreamActive } = strapiData.data;
+  const { layout, sections, youtubeLiveUrl, liveStreamActive, activeAuctionId } = strapiData.data;
+
+  // DEBUG 1: Log activeAuctionId value
+  console.log('\n========== DEBUG LOGS ==========');
+  console.log('1️⃣ activeAuctionId from strapiData.data:', activeAuctionId);
+  console.log('   Type:', typeof activeAuctionId);
+
+  // DEBUG 2: Log all cards with id and documentId
+  console.log('\n2️⃣ All cards in auctionsSection:');
+  if (auctionsSection?.cards) {
+    auctionsSection.cards.forEach((card: any, index: number) => {
+      console.log(`   Card ${index}:`, {
+        id: card.id,
+        documentId: card.documentId,
+        title: card.title,
+      });
+    });
+  } else {
+    console.log('   No cards found in auctionsSection');
+  }
+
+  // Encontrar la auction seleccionada para el live stream (by title)
+  const selectedAuction = activeAuctionId
+    ? auctionsSection?.cards?.find((card: any) => card.title === activeAuctionId)
+    : null;
+
+  // DEBUG 3: Log selectedAuction result
+  console.log('\n3️⃣ selectedAuction result:', selectedAuction ? {
+    id: selectedAuction.id,
+    documentId: selectedAuction.documentId,
+    title: selectedAuction.title,
+    found: true
+  } : 'null - No matching card found');
+
+  // DEBUG: Show the comparison being made
+  if (activeAuctionId && !selectedAuction) {
+    console.log('\n⚠️  WHY NOT FOUND:');
+    console.log('   Looking for activeAuctionId:', activeAuctionId);
+    console.log('   Available documentIds:', auctionsSection?.cards?.map((c: any) => c.documentId));
+    console.log('   Available ids:', auctionsSection?.cards?.map((c: any) => c.id));
+  }
+  console.log('================================\n');
+
+  console.log('💰 userCredits:', userCredits);
 
   return (
     <>
@@ -96,7 +141,7 @@ export default async function Home() {
           return null;
         })}
 
-        {/* YouTube Live Stream con Chat */}
+        {/* YouTube Live Stream con Chat y Auction Seleccionada */}
         {liveStreamActive && youtubeLiveUrl && (
           <section className="py-8 bg-gray-50">
             {session?.userId ? (
@@ -104,6 +149,9 @@ export default async function Home() {
                 youtubeUrl={youtubeLiveUrl}
                 username={session.username || 'Usuario'}
                 userId={session.userId.toString()}
+                selectedAuction={selectedAuction}
+                userFavorites={userFavorites}
+                initialCredits={userCredits}
               />
             ) : (
               <LiveStreamLoginPrompt />

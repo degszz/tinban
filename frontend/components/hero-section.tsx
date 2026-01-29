@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 
 const styles = {
     header: "relative h-[600px] overflow-hidden",
-    backgroundImage: "absolute inset-0 object-cover w-full h-full",
+    backgroundImage: "absolute inset-0 bg-[#F9FAFB] object-cover w-full h-full",
     overlay:
         "relative z-10 flex flex-col items-center justify-center h-full text-center text-white bg-black/50",
     heading: "text-4xl font-bold md:text-5xl lg:text-6xl",

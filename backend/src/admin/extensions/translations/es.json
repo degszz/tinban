@@ -1,0 +1,20 @@
+{
+  "global.content-manager.containers.List.Bid": "Oferta",
+  "global.content-manager.containers.List.Credit-Request": "Solicitud de Crédito",
+  "global.content-manager.containers.List.User": "Usuario",
+  "global.content-manager.containers.List.WhatsApp-Messages": "Mensajes de WhatsApp",
+  
+  "content-manager.popUpWarning.bodyMessage.contentType.delete": "¿Estás seguro de que quieres eliminar este registro?",
+  
+  "Settings.permissions.category": "Configuración de permisos",
+  "Settings.roles.title": "Roles",
+  
+  "app.components.LeftMenuLinkContainer.listPlugins": "Plugins",
+  
+  "global.bid": "Oferta",
+  "global.credit-request": "Solicitud de Crédito",
+  "global.user": "Usuario",
+  "global.whatsapp-messages": "Mensajes de WhatsApp",
+  "global.home-page": "Página de Inicio",
+  "global.nosotros": "Nosotros"
+}

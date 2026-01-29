@@ -22,6 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ⏱️ Intervalo de polling (30 segundos)
+const POLLING_INTERVAL = 30000;
+
 interface CardLink {
   id: number;
   href: string;
@@ -69,8 +72,6 @@ interface AuctionsSectionProps {
   userFavorites?: string[];
 }
 
-// ⏱️ CONFIGURACIÓN DE POLLING
-const POLLING_INTERVAL = 60000; // 60 segundos (1 minuto) - Reducción significativa de requests
 
 // Componente de Carousel para las imágenes
 function CardImageCarousel({ images, title, badge, stat }: {
@@ -377,7 +378,8 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
     setBidError("");
 
     try {
-      const result = await placeBidOnAuction(auctionId, bidValue, card.title);
+      // Subastas normales no requieren aprobacion - se aprueban automaticamente
+      const result = await placeBidOnAuction(auctionId, bidValue, card.title, false);
 
       if (result.success) {
         if (result.newCredits !== undefined) {
@@ -600,16 +602,7 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
           )}
         </CardContent>
 
-        <CardFooter>
-          {card.link && (
-            <a
-              href={card.link.href}
-              className="w-full cursor-pointer bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center font-medium"
-            >
-              Ver Lote
-            </a>
-          )}
-        </CardFooter>
+
       </Card>
 
       {/* Dialog de créditos insuficientes */}

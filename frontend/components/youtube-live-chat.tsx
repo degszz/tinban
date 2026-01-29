@@ -6,14 +6,37 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send, Users, Wifi, WifiOff } from 'lucide-react';
 import { useSocketChat } from '@/hooks/useSocketChat';
+import { LiveStreamAuctionCard } from '@/components/live-stream-auction-card';
+
+interface CardImage {
+  id: number;
+  url: string;
+  alternativeText: string | null;
+}
+
+interface SelectedAuction {
+  id: number;
+  documentId?: string;
+  title: string;
+  description?: string;
+  image: CardImage | CardImage[];
+  Price?: number;
+  badge?: string;
+  stat: 'active' | 'closed' | 'upcoming';
+  quantity?: string;
+  measurements?: string;
+}
 
 interface YouTubeLiveChatProps {
   youtubeUrl: string;
   username: string;
   userId: string;
+  selectedAuction?: SelectedAuction | null;
+  userFavorites?: string[];
+  initialCredits?: number;
 }
 
-export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveChatProps) {
+export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction, userFavorites = [], initialCredits = 0 }: YouTubeLiveChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,19 +49,19 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
 
   const videoId = getYoutubeVideoId(youtubeUrl);
 
-  // 🔥 USAR EL HOOK DE SOCKET.IO
+  // USAR EL HOOK DE SOCKET.IO
   const { messages, sendMessage, onlineUsers, isConnected } = useSocketChat(
     userId,
     username,
     !!videoId
   );
 
-  // Scroll automático al último mensaje SOLO dentro del contenedor del chat
+  // Scroll automatico al ultimo mensaje SOLO dentro del contenedor del chat
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
+      messagesEndRef.current.scrollIntoView({
         behavior: 'smooth',
-        block: 'nearest', // No afecta el scroll de la página
+        block: 'nearest',
         inline: 'nearest'
       });
     }
@@ -50,13 +73,16 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim()) return;
 
-    // 🔥 ENVIAR MENSAJE A TRAVÉS DE SOCKET.IO
     sendMessage(newMessage);
     setNewMessage('');
   };
+
+  // Verificar si la auction esta en favoritos
+  const auctionId = selectedAuction?.documentId || selectedAuction?.id?.toString() || '';
+  const isFavorite = userFavorites.includes(auctionId);
 
   if (!videoId) {
     return (
@@ -64,7 +90,7 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
         <Card className="bg-red-50 border-red-200">
           <CardContent className="pt-6">
             <p className="text-red-600 text-center">
-              URL de YouTube inválida. Por favor, verifica el enlace.
+              URL de YouTube invalida. Por favor, verifica el enlace.
             </p>
           </CardContent>
         </Card>
@@ -74,14 +100,14 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 space-y-4">
-      {/* Header con indicador de transmisión en vivo */}
+      {/* Header con indicador de transmision en vivo */}
       <div className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg">
         <div className="flex items-center gap-2 animate-pulse">
           <div className="w-3 h-3 bg-white rounded-full"></div>
           <span className="font-bold">EN VIVO</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          {/* Estado de conexión */}
+          {/* Estado de conexion */}
           <div className="flex items-center gap-2">
             {isConnected ? (
               <>
@@ -95,19 +121,21 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
               </>
             )}
           </div>
-          {/* Usuarios online */}
+          
+          {/* Usuarios online 
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             <span>{onlineUsers} {onlineUsers === 1 ? 'espectador' : 'espectadores'}</span>
           </div>
+          */}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${selectedAuction ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {/* Video de YouTube */}
-        <div className="lg:col-span-2">
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
+        <div className={selectedAuction ? 'lg:col-span-2' : 'lg:col-span-2'}>
+          <Card className="overflow-hidden h-full">
+            <CardContent className="p-0 h-full">
               <div className="relative pb-[56.25%] h-0">
                 <iframe
                   className="absolute top-0 left-0 w-full h-full"
@@ -121,25 +149,38 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
           </Card>
         </div>
 
+        {/* Auction Seleccionada (si existe) */}
+        {selectedAuction && (
+          <div className="lg:col-span-1">
+            <LiveStreamAuctionCard
+              auction={selectedAuction}
+              userId={userId}
+              userName={username}
+              initialIsFavorite={isFavorite}
+              initialCredits={initialCredits}
+            />
+          </div>
+        )}
+
         {/* Chat en vivo */}
         <div className="lg:col-span-1">
           <Card className="h-[500px] flex flex-col">
-            <CardHeader className="border-b">
+            <CardHeader className="border-b py-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                💬 Chat en Vivo
+                Chat en Vivo
                 <span className="text-sm font-normal text-gray-500">
                   ({onlineUsers} online)
                 </span>
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 text-sm py-8">
-                  No hay mensajes aún. ¡Sé el primero en escribir! 👋
+                  No hay mensajes aun. Se el primero en escribir!
                 </div>
               )}
-              
+
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -185,9 +226,9 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId }: YouTubeLiveCha
                   disabled={!isConnected}
                   className="flex-1"
                 />
-                <Button 
-                  type="submit" 
-                  size="icon" 
+                <Button
+                  type="submit"
+                  size="icon"
                   disabled={!newMessage.trim() || !isConnected}
                 >
                   <Send className="w-4 h-4" />

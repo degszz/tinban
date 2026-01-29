@@ -1,0 +1,20 @@
+{
+  "global.content-manager.containers.List.Bid": "Bid",
+  "global.content-manager.containers.List.Credit-Request": "Credit Request",
+  "global.content-manager.containers.List.User": "User",
+  "global.content-manager.containers.List.WhatsApp-Messages": "WhatsApp Messages",
+  
+  "content-manager.popUpWarning.bodyMessage.contentType.delete": "Are you sure you want to delete this entry?",
+  
+  "Settings.permissions.category": "Permission settings",
+  "Settings.roles.title": "Roles",
+  
+  "app.components.LeftMenuLinkContainer.listPlugins": "Plugins",
+  
+  "global.bid": "Bid",
+  "global.credit-request": "Credit Request",
+  "global.user": "User",
+  "global.whatsapp-messages": "WhatsApp Messages",
+  "global.home-page": "Home Page",
+  "global.nosotros": "About Us"
+}

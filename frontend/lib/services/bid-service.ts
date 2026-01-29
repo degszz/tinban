@@ -3,12 +3,15 @@ import qs from "qs";
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
 /**
- * Función del lado del cliente para realizar una puja
+ * Funcion del lado del cliente para realizar una puja
+ * @param requiresApproval - Si es true, la puja queda pendiente de aprobacion del admin (live stream)
+ *                          Si es false o undefined, la puja se aprueba automaticamente (subastas normales)
  */
 export async function placeBidOnAuction(
   auctionId: string,
   amount: number,
-  auctionTitle: string
+  auctionTitle: string,
+  requiresApproval: boolean = false
 ) {
   try {
     const response = await fetch("/api/bids", {
@@ -20,6 +23,7 @@ export async function placeBidOnAuction(
         auctionId,
         amount,
         auctionTitle,
+        requiresApproval,
       }),
     });
 

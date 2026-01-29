@@ -16,7 +16,7 @@ export interface ComponentLink extends Struct.ComponentSchema {
 export interface LayoutAuctionsSection extends Struct.ComponentSchema {
   collectionName: 'components_layout_auctions_sections';
   info: {
-    displayName: 'Auctions Section';
+    displayName: 'Lotes';
     icon: 'apps';
   };
   attributes: {
@@ -30,7 +30,7 @@ export interface LayoutAuctionsSection extends Struct.ComponentSchema {
 export interface LayoutCard extends Struct.ComponentSchema {
   collectionName: 'components_layout_cards';
   info: {
-    displayName: 'Card';
+    displayName: 'Carta';
     icon: 'folder';
   };
   attributes: {
@@ -49,7 +49,7 @@ export interface LayoutCard extends Struct.ComponentSchema {
 export interface LayoutHeader extends Struct.ComponentSchema {
   collectionName: 'components_layout_headers';
   info: {
-    displayName: 'Header';
+    displayName: 'Cabezera';
     icon: 'arrowUp';
   };
   attributes: {
@@ -62,7 +62,7 @@ export interface LayoutHeader extends Struct.ComponentSchema {
 export interface LayoutHeroSection extends Struct.ComponentSchema {
   collectionName: 'components_layout_hero_sections';
   info: {
-    displayName: 'Hero Section';
+    displayName: 'Seccion Principal';
     icon: 'apps';
   };
   attributes: {

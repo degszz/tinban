@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Clock, User, DollarSign } from "lucide-react";
+import Link from "next/link";
+import { Check, X, Clock, User, DollarSign, Coins } from "lucide-react";
 
 interface CreditRequest {
   id: number;
@@ -67,7 +67,7 @@ export default function AdminCreditRequestsPage() {
 
   const handleReject = async (id: number) => {
     const reason = prompt('Razón del rechazo (opcional):');
-    
+
     setProcessingId(id);
     try {
       const response = await fetch(`/api/admin/credit-requests/${id}/reject`, {
@@ -113,13 +113,33 @@ export default function AdminCreditRequestsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Solicitudes de Crédito
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gestiona las solicitudes de crédito de los usuarios
-          </p>
+        <div className="mb-8 flex items-center justify-start">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+              Solicitudes de Crédito
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Gestiona las solicitudes de crédito de los usuarios
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/">Ver Subastas</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard">☰ Menu</Link>
+              </Button>
+              {/* ADMIN */}
+              <Button asChild className="w-full hover:scale-110 transition-all duration-200">
+                <Link href="/admin/live-stream">🎥 Directo</Link>
+              </Button>
+
+            </div>
+          </div>
+          <div className="hidden sm:block mx-auto md:mx-0">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-full shadow-lg ml-20 lg:ml-0">
+              <Coins className="h-16 w-16 text-yellow-500" />
+            </div>
+          </div>
         </div>
 
         {/* Solicitudes Pendientes */}
@@ -127,7 +147,7 @@ export default function AdminCreditRequestsPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Pendientes ({pendingRequests.length})
           </h2>
-          
+
           {pendingRequests.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-gray-500">
@@ -141,7 +161,7 @@ export default function AdminCreditRequestsPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex pt-3 items-center gap-2">
                           <User className="h-5 w-5" />
                           {request.user?.username || 'Usuario desconocido'}
                         </CardTitle>
@@ -160,7 +180,7 @@ export default function AdminCreditRequestsPage() {
                         {request.amount.toLocaleString()}
                       </p>
                     </div>
-                    
+
                     {request.reason && (
                       <div>
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -171,7 +191,7 @@ export default function AdminCreditRequestsPage() {
                         </p>
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-gray-500">
                       Solicitado: {new Date(request.createdAt).toLocaleString('es-AR')}
                     </p>
@@ -206,7 +226,7 @@ export default function AdminCreditRequestsPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Historial ({processedRequests.length})
           </h2>
-          
+
           {processedRequests.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-gray-500">
@@ -218,7 +238,7 @@ export default function AdminCreditRequestsPage() {
               {processedRequests.map((request) => (
                 <Card key={request.id}>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between pt-3">
                       <div className="flex-1">
                         <CardTitle className="text-base">
                           {request.user?.username || 'Usuario'}
