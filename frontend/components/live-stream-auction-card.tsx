@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Gavel, TrendingUp, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Gavel, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, Trophy, AlertTriangle } from 'lucide-react';
 import { FavoriteButton } from '@/components/favorite-button';
 import { placeBidOnAuction, getBidsForAuction } from '@/lib/services/bid-service';
 import { getUserCredits } from '@/lib/services/credits-service';
@@ -134,7 +134,7 @@ function CardImageCarousel({ images, title, stat }: {
         <div className="flex">
           {images.map((image, index) => (
             <div key={image?.id || index} className="flex-[0_0_100%]">
-              <div className="relative h-48 w-full overflow-hidden">
+              <div className="relative h-[250px] w-full overflow-hidden">
                 <img
                   src={getStrapiMedia(image?.url)}
                   alt={image?.alternativeText || `${title} - imagen ${index + 1}`}
@@ -230,6 +230,10 @@ export function LiveStreamAuctionCard({
   // Si tenemos initialCredits > 0, no mostrar loading
   const [isLoadingCredits, setIsLoadingCredits] = useState(initialCredits === 0);
   const [showInsufficientCreditsDialog, setShowInsufficientCreditsDialog] = useState(false);
+  // Winning/outbid indicators
+  const [isWinning, setIsWinning] = useState(false);
+  const [wasOutbid, setWasOutbid] = useState(false);
+  const previousWinningRef = useRef(false);
 
   console.log('🔑 LiveStreamAuctionCard initialCredits:', initialCredits, 'userCredits:', userCredits);
 
@@ -245,7 +249,7 @@ export function LiveStreamAuctionCard({
 
     const interval = setInterval(() => {
       loadBids();
-    }, 5000);
+    }, 60000); // 60 segundos para reducir API calls
 
     return () => clearInterval(interval);
   }, [auctionId, initialCredits]);
@@ -268,9 +272,26 @@ export function LiveStreamAuctionCard({
         const sortedBids = bidsData.sort((a: any, b: any) => b.amount - a.amount);
         setBids(sortedBids);
         setCurrentPrice(sortedBids[0].amount);
+
+        const highestBidUserId = sortedBids[0].userId;
+        const userIsWinning = highestBidUserId === userId;
+
+        console.log('🏆 Winning check:', { highestBidUserId, userId, userIsWinning, wasWinning: previousWinningRef.current });
+
+        if (previousWinningRef.current && !userIsWinning) {
+          setWasOutbid(true);
+          setTimeout(() => setWasOutbid(false), 5000);
+        }
+
+        setIsWinning(userIsWinning);
+        previousWinningRef.current = userIsWinning;
+
+        loadUserCredits();
       } else {
         setBids([]);
         setCurrentPrice(auction.Price || 0);
+        setIsWinning(false);
+        previousWinningRef.current = false;
       }
     } catch (error) {
       console.error('Error loading bids:', error);
@@ -370,11 +391,11 @@ export function LiveStreamAuctionCard({
 
   return (
     <>
-      <Card className="h-full flex flex-col overflow-hidden">
+      <Card className="flex flex-col overflow-hidden">
         {/* Carousel de imagenes */}
-        <CardImageCarousel images={images} title={auction.title} stat={auction.stat} />
+        <CardImageCarousel images={images} title={auction.title} stat={auction.stat}/>
 
-        <CardHeader className="pb-2 pt-3">
+        <CardHeader className="">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-lg line-clamp-2">{auction.title}</CardTitle>
             <FavoriteButton
@@ -408,6 +429,21 @@ export function LiveStreamAuctionCard({
               )}
             </div>
           </div>
+
+          {/* Indicador de que vas ganando */}
+          {isWinning && bids.length > 0 && (
+            <div className="bg-green-100 border-2 border-green-500 rounded-lg p-3 flex items-center gap-2 animate-pulse">
+              <Trophy className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-bold text-green-700">¡VAS GANANDO!</span>
+            </div>
+          )}
+          {/* Indicador de que te superaron */}
+          {wasOutbid && (
+            <div className="bg-red-100 border-2 border-red-500 rounded-lg p-3 flex items-center gap-2 animate-bounce">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <span className="text-sm font-bold text-red-700">¡TE HAN SUPERADO!</span>
+            </div>
+          )}
 
           {/* Creditos disponibles */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
@@ -498,25 +534,7 @@ export function LiveStreamAuctionCard({
                 </div>
               )}
 
-              {/* Ultimas pujas */}
-              {bids.length > 0 && (
-                <div className="border-t pt-2 mt-2">
-                  <p className="text-xs font-semibold text-gray-600 mb-1">Ultimas pujas:</p>
-                  <div className="space-y-1 max-h-20 overflow-y-auto">
-                    {bids.slice(0, 3).map((bid) => (
-                      <div
-                        key={bid.id}
-                        className="flex justify-between items-center text-xs bg-gray-50 p-1.5 rounded"
-                      >
-                        <span className="text-gray-600 truncate max-w-[100px]">{bid.userName}</span>
-                        <span className="font-bold text-green-600">
-                          ${bid.amount.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              
             </div>
           ) : (
             <div className="bg-gray-50 p-3 rounded-lg text-center">

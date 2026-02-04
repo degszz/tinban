@@ -12,7 +12,7 @@ export function Footer() {
                 <strong>Contactanos</strong>
               </h4>
               <div className="flex flex-col">
-                <span>📱 <strong>Tel:</strong> +54 9 11 3074-4578</span>
+                <span>📱 <strong>Telefono:</strong> +54 9 11 3074-4578</span>
                 <span>📧 <strong>Email:</strong> horaciotinban@gmail.com</span>
                 <span>📍 <strong>CABA, Buenos Aires</strong></span>
               </div>

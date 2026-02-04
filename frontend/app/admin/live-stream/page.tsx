@@ -5,6 +5,8 @@ import { getUserMeService } from '@/lib/services/auth-service';
 import { getStrapiData, homePageQuery } from '@/lib/strapi';
 import { isUserAdmin } from '@/lib/utils/check-admin';
 
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+
 interface AuctionCard {
   id: number;
   documentId?: string;
@@ -42,15 +44,27 @@ export default async function AdminLiveStreamPage() {
 
   console.log('✅ Acceso concedido - Es admin');
 
-  // Obtener datos de Strapi
+  // Obtener config del live stream desde content-type separado
+  let liveStreamActive = false;
+  let youtubeLiveUrl = '';
+  let activeAuctionId = '';
+
+  try {
+    const configResponse = await fetch(`${STRAPI_URL}/api/live-stream-config`, {
+      cache: 'no-store',
+    });
+    if (configResponse.ok) {
+      const configData = await configResponse.json();
+      liveStreamActive = configData.data?.liveStreamActive || false;
+      youtubeLiveUrl = configData.data?.youtubeLiveUrl || '';
+      activeAuctionId = configData.data?.activeAuctionId || '';
+    }
+  } catch (error) {
+    console.error('Error fetching live stream config:', error);
+  }
+
+  // Obtener lista de auctions desde home-page (solo para el selector)
   const strapiData = await getStrapiData("/api/home-page", homePageQuery);
-
-  // Extraer configuracion del live stream
-  const liveStreamActive = strapiData.data?.liveStreamActive || false;
-  const youtubeLiveUrl = strapiData.data?.youtubeLiveUrl || '';
-  const activeAuctionId = strapiData.data?.activeAuctionId || '';
-
-  // Extraer lista de auctions desde la seccion auctions-section
   const auctionsSection = strapiData.data?.sections?.find(
     (s: any) => s.__component === 'layout.auctions-section'
   );

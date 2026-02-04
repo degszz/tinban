@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const auctionId = searchParams.get("auctionId");
+    const includeWinner = searchParams.get("includeWinner") === "true";
 
     if (!auctionId) {
       return NextResponse.json(
@@ -16,11 +17,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("📥 GET /api/bids - Fetching bids for auction:", auctionId);
+    console.log("📥 GET /api/bids - Fetching bids for auction:", auctionId, "includeWinner:", includeWinner);
 
-    // Obtener bids activas desde Strapi (filtrar por status=active)
+    // Build status filter - include winner if requested
+    let statusFilter = "filters[status][$eq]=active";
+    if (includeWinner) {
+      statusFilter = "filters[status][$in][0]=active&filters[status][$in][1]=winner";
+    }
+
+    // Obtener bids desde Strapi
     const strapiResponse = await fetch(
-      `${STRAPI_URL}/api/bids?filters[auction_id][$eq]=${auctionId}&filters[status][$eq]=active&populate=user&sort[0]=amount:desc&sort[1]=createdAt:desc`,
+      `${STRAPI_URL}/api/bids?filters[auction_id][$eq]=${auctionId}&${statusFilter}&populate=user&sort[0]=amount:desc&sort[1]=createdAt:desc`,
       {
         headers: {
           "Content-Type": "application/json",

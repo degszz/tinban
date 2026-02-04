@@ -36,9 +36,42 @@ interface YouTubeLiveChatProps {
   initialCredits?: number;
 }
 
+// Polling interval for auction changes (10 seconds)
+const AUCTION_POLL_INTERVAL = 10000;
+
 export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction, userFavorites = [], initialCredits = 0 }: YouTubeLiveChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track current auction to detect changes
+  const currentAuctionRef = useRef<string | null>(selectedAuction?.title || null);
+
+  // Poll for auction changes every 10 seconds
+  useEffect(() => {
+    const checkAuctionChange = async () => {
+      try {
+        const response = await fetch('/api/admin/live-stream', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          const newActiveAuctionId = data.activeAuctionId || null;
+
+          // If auction changed, refresh the page to get new auction data
+          if (newActiveAuctionId !== currentAuctionRef.current) {
+            console.log('🔄 Auction changed from', currentAuctionRef.current, 'to', newActiveAuctionId);
+            currentAuctionRef.current = newActiveAuctionId;
+            // Refresh the page to get updated auction data from server
+            window.location.reload();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auction changes:', error);
+      }
+    };
+
+    const interval = setInterval(checkAuctionChange, AUCTION_POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
 
   // Extraer el video ID de la URL de YouTube
   const getYoutubeVideoId = (url: string): string | null => {
@@ -58,12 +91,8 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction,
 
   // Scroll automatico al ultimo mensaje SOLO dentro del contenedor del chat
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest'
-      });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   };
 
@@ -131,11 +160,11 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction,
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 ${selectedAuction ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-2 ${selectedAuction ? 'lg:grid-cols-4' : 'lg:grid-cols-4'}`}>
         {/* Video de YouTube */}
-        <div className={selectedAuction ? 'lg:col-span-2' : 'lg:col-span-2'}>
-          <Card className="overflow-hidden h-full">
-            <CardContent className="p-0 h-full">
+        <div className={`cols-span-2 ${selectedAuction ? 'md:col-span-3' : 'lg:col-span-3'}`}>
+          <Card className="overflow-hidden h-fit">
+            <CardContent className="p-0 h-fit">
               <div className="relative pb-[56.25%] h-0">
                 <iframe
                   className="absolute top-0 left-0 w-full h-full"
@@ -151,8 +180,9 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction,
 
         {/* Auction Seleccionada (si existe) */}
         {selectedAuction && (
-          <div className="lg:col-span-1">
+          <div className="col-span-1">
             <LiveStreamAuctionCard
+              key={selectedAuction.documentId || selectedAuction.id}
               auction={selectedAuction}
               userId={userId}
               userName={username}
@@ -163,8 +193,8 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction,
         )}
 
         {/* Chat en vivo */}
-        <div className="lg:col-span-1">
-          <Card className="h-[500px] flex flex-col">
+        <div className="col-span-1 lg:col-span-4">
+          <Card className="h-[400px] flex flex-col">
             <CardHeader className="border-b py-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 Chat en Vivo
@@ -174,7 +204,7 @@ export function YouTubeLiveChat({ youtubeUrl, username, userId, selectedAuction,
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
+            <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 text-sm py-8">
                   No hay mensajes aun. Se el primero en escribir!

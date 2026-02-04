@@ -626,6 +626,38 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiLiveStreamConfigLiveStreamConfig
+  extends Struct.SingleTypeSchema {
+  collectionName: 'live_stream_configs';
+  info: {
+    displayName: 'Live Stream Config';
+    pluralName: 'live-stream-configs';
+    singularName: 'live-stream-config';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    activeAuctionId: Schema.Attribute.String & Schema.Attribute.DefaultTo<''>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    liveStreamActive: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::live-stream-config.live-stream-config'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    youtubeLiveUrl: Schema.Attribute.String & Schema.Attribute.DefaultTo<''>;
+  };
+}
+
 export interface ApiNosotrosPageNosotrosPage extends Struct.SingleTypeSchema {
   collectionName: 'nosotros_pages';
   info: {
@@ -1272,6 +1304,7 @@ declare module '@strapi/strapi' {
       'api::bid.bid': ApiBidBid;
       'api::credit-request.credit-request': ApiCreditRequestCreditRequest;
       'api::home-page.home-page': ApiHomePageHomePage;
+      'api::live-stream-config.live-stream-config': ApiLiveStreamConfigLiveStreamConfig;
       'api::nosotros-page.nosotros-page': ApiNosotrosPageNosotrosPage;
       'api::whatsapp-log.whatsapp-log': ApiWhatsappLogWhatsappLog;
       'plugin::content-releases.release': PluginContentReleasesRelease;

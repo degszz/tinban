@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,7 @@ export function LiveStreamAdminPanel({
 }: LiveStreamAdminPanelProps) {
   const [bids, setBids] = useState<Bid[]>([]);
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'outbid'>('all');
   const [showChat, setShowChat] = useState(true);
 
@@ -76,6 +78,8 @@ export function LiveStreamAdminPanel({
   const [youtubeLiveUrl, setYoutubeLiveUrl] = useState(initialYoutubeLiveUrl);
   const [activeAuctionId, setActiveAuctionId] = useState(initialActiveAuctionId || 'none');
   const [isSaving, setIsSaving] = useState(false);
+  const [isClosingAuction, setIsClosingAuction] = useState(false);
+  const [auctionWinner, setAuctionWinner] = useState<{ username: string; amount: number } | null>(null);
 
   // Hook de Socket.IO para chat
   const { messages, sendMessage, onlineUsers, isConnected } = useSocketChat(
@@ -83,6 +87,24 @@ export function LiveStreamAdminPanel({
     `👑 ${adminUsername} (Admin)`,
     true
   );
+
+  // Socket connection for emitting bid-approved events
+  useEffect(() => {
+    const SOCKET_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+    });
+
+    newSocket.on('connect', () => {
+      console.log('✅ Admin socket connected for bid events');
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
 
   // Guardar configuracion del Live Stream
   const handleSaveConfig = async () => {
@@ -121,6 +143,50 @@ export function LiveStreamAdminPanel({
     }
   };
 
+  // Cerrar remate - marcar ganador
+  const handleCloseAuction = async () => {
+    if (!activeAuctionId || activeAuctionId === 'none') {
+      alert('Selecciona una subasta primero');
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de cerrar el remate "${activeAuctionId}"? Esto marcará al postor más alto como ganador.`)) {
+      return;
+    }
+
+    setIsClosingAuction(true);
+    try {
+      const response = await fetch('/api/admin/live-stream/close-auction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auctionId: activeAuctionId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setAuctionWinner({
+          username: data.winner.username,
+          amount: data.winner.amount,
+        });
+        sendMessage(`🏆 ¡VENDIDO! Ganador: ${data.winner.username} con $${data.winner.amount.toLocaleString()}`);
+        alert(data.message);
+        loadBids();
+      } else {
+        alert(data.error || 'Error al cerrar remate');
+      }
+    } catch (error) {
+      console.error('Error closing auction:', error);
+      alert('Error al cerrar remate');
+    } finally {
+      setIsClosingAuction(false);
+    }
+  };
+
   // Cargar bids desde Strapi
   useEffect(() => {
     loadBids();
@@ -147,13 +213,24 @@ export function LiveStreamAdminPanel({
 
   const handleApproveBid = async (bidId: string) => {
     try {
+      // Find the bid being approved (could be selectedBid or from the list)
+      const bidToApprove = selectedBid || bids.find(b => b.documentId === bidId);
+
       const response = await fetch(`/api/admin/live-stream/bids/${bidId}/approve`, {
         method: 'POST'
       });
 
       if (response.ok) {
+        // Emit bid-approved event via socket
+        if (socket && bidToApprove) {
+          socket.emit('bid-approved', {
+            username: bidToApprove.username,
+            amount: bidToApprove.amount,
+            auctionTitle: bidToApprove.auctionTitle,
+          });
+        }
         // Enviar mensaje al chat
-        sendMessage(`✅ Puja de $${selectedBid?.amount} APROBADA`);
+        sendMessage(`✅ Puja de $${bidToApprove?.amount?.toLocaleString()} APROBADA`);
         loadBids();
         setSelectedBid(null);
       }
@@ -352,8 +429,17 @@ export function LiveStreamAdminPanel({
               </p>
             </div>
 
-            {/* Boton Guardar */}
-            <div className="flex justify-end pt-4 border-t">
+            {/* Botones de Accion */}
+            <div className="flex justify-between pt-4 border-t gap-4">
+              <Button
+                onClick={handleCloseAuction}
+                disabled={isClosingAuction || !activeAuctionId || activeAuctionId === 'none'}
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Gavel className="h-4 w-4 mr-2" />
+                {isClosingAuction ? 'Cerrando...' : 'Cerrar Remate'}
+              </Button>
               <Button
                 onClick={handleSaveConfig}
                 disabled={isSaving}
@@ -363,6 +449,21 @@ export function LiveStreamAdminPanel({
                 {isSaving ? 'Guardando...' : 'Guardar Configuracion'}
               </Button>
             </div>
+
+            {/* Winner notification */}
+            {auctionWinner && (
+              <div className="bg-green-50 border border-green-300 rounded-lg p-4 mt-4">
+                <p className="text-lg font-bold text-green-800 flex items-center gap-2">
+                  🏆 ¡Remate Cerrado!
+                </p>
+                <p className="text-green-700">
+                  Ganador: <span className="font-semibold">{auctionWinner.username}</span>
+                </p>
+                <p className="text-green-700">
+                  Monto: <span className="font-bold">${auctionWinner.amount.toLocaleString()}</span>
+                </p>
+              </div>
+            )}
 
             {/* Resumen de configuracion */}
             {(liveStreamActive || (activeAuctionId && activeAuctionId !== 'none')) && (

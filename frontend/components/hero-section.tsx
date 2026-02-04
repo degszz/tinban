@@ -5,14 +5,14 @@ import type { IHeroSectionProps } from "@/types";
 import { Button } from "./ui/button";
 
 const styles = {
-    header: "relative h-[600px] overflow-hidden",
-    backgroundImage: "absolute inset-0 bg-[#F9FAFB] object-cover w-full h-full",
+    header: "relative h-[600px] overflow-hidden ",
+    backgroundImage: "absolute inset-0 bg-[#F9FAFB] object-cover w-full h-full ",
     overlay:
-        "relative z-10 flex flex-col items-center justify-center h-full text-center text-white bg-black/50",
+        "relative z-10 flex flex-col items-center justify-center h-full text-center text-white bg-black/25",
     heading: "text-4xl font-bold md:text-5xl lg:text-6xl",
-    subheading: "mt-4 text-lg md:text-xl lg:text-2xl",
+    subheading: "mt-4 text-2xl md:text-xl lg:text-2xl text-white",
     button:
-        "mt-8 inline-flex items-center justify-center px-6 py-3 text-base font-medium text-black bg-white rounded-md shadow hover:bg-gray-100 transition-colors",
+        "mt-8 inline-flex duration-500  items-center justify-center px-5 py-2 text-base font-medium text-white transition-all scale-90 hover:scale-110 rounded-md shadow bg-[#B0CDDB] hover:bg-[#115FB7] transition-colors",
 };
 
 export function HeroSection({ data }: { readonly data: IHeroSectionProps }) {
@@ -61,8 +61,7 @@ export function HeroSection({ data }: { readonly data: IHeroSectionProps }) {
                 sizes="100vw"
             />
             <div className={styles.overlay}>
-                <h1 className={styles.heading}>{heading}</h1>
-                <p className={styles.subheading}>{subHeading}</p>
+                <p className={styles.subheading}><b>{subHeading}</b></p>
                 {link && (
                     <Link className={styles.button} href={link.href}>
                         {link.label}

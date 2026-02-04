@@ -1,0 +1,26 @@
+{
+  "kind": "singleType",
+  "collectionName": "live_stream_configs",
+  "info": {
+    "singularName": "live-stream-config",
+    "pluralName": "live-stream-configs",
+    "displayName": "Live Stream Config"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "liveStreamActive": {
+      "type": "boolean",
+      "default": false
+    },
+    "youtubeLiveUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "activeAuctionId": {
+      "type": "string",
+      "default": ""
+    }
+  }
+}

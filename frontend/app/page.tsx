@@ -3,13 +3,14 @@ import { getStrapiData, homePageQuery } from "@/lib/strapi";
 import { HeroSection } from "@/components/hero-section";
 import { Header } from "@/components/header";
 import About from "@/components/about";
-import { YouTubeLiveChat } from "@/components/youtube-live-chat";
-import { LiveStreamLoginPrompt } from "@/components/live-stream-login-prompt";
+import { LiveStreamBanner } from "@/components/live-stream-banner";
 import { AuctionsSection } from "@/components/auctions-section";
 import { cookies } from "next/headers";
 import { Footer } from "@/components/footer";
 import { getUserFavorites } from "@/lib/services/favorites-service";
 import { getUserMeService } from "@/lib/services/auth-service";
+
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
 
 export default async function Home() {
@@ -81,50 +82,31 @@ export default async function Home() {
     );
   }
 
-  const { layout, sections, youtubeLiveUrl, liveStreamActive, activeAuctionId } = strapiData.data;
+  const { layout, sections } = strapiData.data;
 
-  // DEBUG 1: Log activeAuctionId value
-  console.log('\n========== DEBUG LOGS ==========');
-  console.log('1️⃣ activeAuctionId from strapiData.data:', activeAuctionId);
-  console.log('   Type:', typeof activeAuctionId);
+  // Obtener config del live stream desde content-type separado (no afecta revalidación de home-page)
+  let liveStreamActive = false;
+  let youtubeLiveUrl = '';
+  let activeAuctionId = '';
 
-  // DEBUG 2: Log all cards with id and documentId
-  console.log('\n2️⃣ All cards in auctionsSection:');
-  if (auctionsSection?.cards) {
-    auctionsSection.cards.forEach((card: any, index: number) => {
-      console.log(`   Card ${index}:`, {
-        id: card.id,
-        documentId: card.documentId,
-        title: card.title,
-      });
+  try {
+    const configResponse = await fetch(`${STRAPI_URL}/api/live-stream-config`, {
+      cache: 'no-store',
     });
-  } else {
-    console.log('   No cards found in auctionsSection');
+    if (configResponse.ok) {
+      const configData = await configResponse.json();
+      liveStreamActive = configData.data?.liveStreamActive || false;
+      youtubeLiveUrl = configData.data?.youtubeLiveUrl || '';
+      activeAuctionId = configData.data?.activeAuctionId || '';
+    }
+  } catch (error) {
+    console.error('Error fetching live stream config:', error);
   }
 
   // Encontrar la auction seleccionada para el live stream (by title)
   const selectedAuction = activeAuctionId
     ? auctionsSection?.cards?.find((card: any) => card.title === activeAuctionId)
     : null;
-
-  // DEBUG 3: Log selectedAuction result
-  console.log('\n3️⃣ selectedAuction result:', selectedAuction ? {
-    id: selectedAuction.id,
-    documentId: selectedAuction.documentId,
-    title: selectedAuction.title,
-    found: true
-  } : 'null - No matching card found');
-
-  // DEBUG: Show the comparison being made
-  if (activeAuctionId && !selectedAuction) {
-    console.log('\n⚠️  WHY NOT FOUND:');
-    console.log('   Looking for activeAuctionId:', activeAuctionId);
-    console.log('   Available documentIds:', auctionsSection?.cards?.map((c: any) => c.documentId));
-    console.log('   Available ids:', auctionsSection?.cards?.map((c: any) => c.id));
-  }
-  console.log('================================\n');
-
-  console.log('💰 userCredits:', userCredits);
 
   return (
     <>
@@ -141,24 +123,12 @@ export default async function Home() {
           return null;
         })}
 
-        {/* YouTube Live Stream con Chat y Auction Seleccionada */}
+        {/* Banner de Live Stream Activo */}
         {liveStreamActive && youtubeLiveUrl && (
-          <section className="py-8 bg-gray-50">
-            {session?.userId ? (
-              <YouTubeLiveChat
-                youtubeUrl={youtubeLiveUrl}
-                username={session.username || 'Usuario'}
-                userId={session.userId.toString()}
-                selectedAuction={selectedAuction}
-                userFavorites={userFavorites}
-                initialCredits={userCredits}
-              />
-            ) : (
-              <LiveStreamLoginPrompt />
-            )}
-          </section>
+          <LiveStreamBanner auctionTitle={selectedAuction?.title} />
         )}
 
+        <div id="auctions"></div>
         {/* Resto de secciones (Auctions, etc.) */}
         {sections && sections.map((section: any, index: number) => {
           switch (section.__component) {
@@ -174,6 +144,8 @@ export default async function Home() {
                   userId={session?.userId?.toString()}
                   userName={session?.username}
                   userFavorites={userFavorites}
+                  initialActiveAuctionId={activeAuctionId}
+                  initialLiveStreamActive={liveStreamActive}
                 />
               );
 

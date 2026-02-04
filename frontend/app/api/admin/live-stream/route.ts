@@ -4,10 +4,10 @@ import { cookies } from 'next/headers';
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 
-// GET - Obtener configuracion del live stream
+// GET - Obtener configuracion del live stream (desde content-type separado)
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${STRAPI_URL}/api/home-page`, {
+    const response = await fetch(`${STRAPI_URL}/api/live-stream-config`, {
       cache: 'no-store',
     });
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT - Actualizar configuracion del live stream
+// PUT - Actualizar configuracion del live stream (en content-type separado)
 export async function PUT(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -43,47 +43,10 @@ export async function PUT(request: NextRequest) {
 
     // Use STRAPI_API_TOKEN if available, fallback to user JWT
     const authToken = STRAPI_API_TOKEN || token;
-    const tokenSource = STRAPI_API_TOKEN ? 'STRAPI_API_TOKEN' : 'JWT';
-
-    // Debug: Log which token is being used
-    console.log('[DEBUG] Using token source:', tokenSource);
-    console.log('[DEBUG] Token (first 20 chars):', authToken.substring(0, 20) + '...');
+    const authHeader = `Bearer ${authToken}`;
 
     const body = await request.json();
     const { liveStreamActive, youtubeLiveUrl, activeAuctionId } = body;
-
-    // Debug: Log the Authorization header being sent
-    const authHeader = `Bearer ${authToken}`;
-    console.log('[DEBUG] Authorization header:', `Bearer ${authToken.substring(0, 20)}...`);
-
-    // 1. Obtener el documentId del home-page
-    const getResponse = await fetch(`${STRAPI_URL}/api/home-page`, {
-      headers: {
-        Authorization: authHeader,
-      },
-      cache: 'no-store',
-    });
-
-    // Debug: Log response status
-    console.log('[DEBUG] getResponse status:', getResponse.status);
-    console.log('[DEBUG] getResponse ok:', getResponse.ok);
-
-    if (!getResponse.ok) {
-      // Debug: Log full response body on failure
-      const errorBody = await getResponse.text();
-      console.error('[DEBUG] getResponse failed - Status:', getResponse.status);
-      console.error('[DEBUG] getResponse failed - Body:', errorBody);
-      throw new Error(`Error al obtener home-page: ${getResponse.status} - ${errorBody}`);
-    }
-
-    const homePageData = await getResponse.json();
-    const documentId = homePageData.data?.documentId;
-    console.log('[DEBUG] documentId:', documentId);
-
-    if (!documentId) {
-      console.error('No se encontro documentId del home-page');
-      throw new Error('No se encontro documentId del home-page');
-    }
 
     // Construir objeto de datos solo con campos que vienen en la request
     const updateData: Record<string, any> = {};
@@ -91,8 +54,8 @@ export async function PUT(request: NextRequest) {
     if (youtubeLiveUrl !== undefined) updateData.youtubeLiveUrl = youtubeLiveUrl;
     if (activeAuctionId !== undefined) updateData.activeAuctionId = activeAuctionId;
 
-    // 2. Actualizar en Strapi usando el documentId
-    const response = await fetch(`${STRAPI_URL}/api/home-page`, {
+    // Actualizar en Strapi - live-stream-config es singleType, no necesita documentId
+    const response = await fetch(`${STRAPI_URL}/api/live-stream-config`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -103,9 +66,7 @@ export async function PUT(request: NextRequest) {
       }),
     });
 
-    console.log('[DEBUG] updateResponse status:', response.status);
     const responseBody = await response.text();
-    console.log('[DEBUG] updateResponse body:', responseBody);
 
     if (!response.ok) {
       console.error('Strapi error:', responseBody);

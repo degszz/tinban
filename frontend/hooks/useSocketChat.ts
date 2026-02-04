@@ -84,6 +84,17 @@ export function useSocketChat(userId: string, username: string, enabled: boolean
       }]);
     });
 
+    newSocket.on('bid-approved', (data: { username: string; amount: number; auctionTitle: string }) => {
+      const systemMessage: Message = {
+        id: `bid-${Date.now()}`,
+        userId: 'system',
+        username: 'Sistema',
+        message: `${data.username} ha pujado $${data.amount.toLocaleString()} por "${data.auctionTitle}" - APROBADA`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, systemMessage]);
+    });
+
     setSocket(newSocket);
 
     // Cleanup

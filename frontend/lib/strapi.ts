@@ -46,7 +46,7 @@ export async function getStrapiData(path: string, query?: string) {
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: 'no-store',
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {

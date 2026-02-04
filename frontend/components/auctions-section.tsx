@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Gavel, TrendingUp, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gavel, TrendingUp, AlertCircle, Radio } from "lucide-react";
+import Link from "next/link";
 import { FavoriteButton } from "@/components/favorite-button";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useState } from "react";
@@ -24,6 +25,19 @@ import {
 
 // ⏱️ Intervalo de polling (30 segundos)
 const POLLING_INTERVAL = 30000;
+
+// 🔒 Cache global de precios - persiste entre re-mounts del componente
+const auctionPriceCache = new Map<string, number>();
+
+// Función para obtener precio cacheado
+function getCachedPrice(auctionId: string, fallbackPrice: number): number {
+  return auctionPriceCache.get(auctionId) ?? fallbackPrice;
+}
+
+// Función para actualizar precio en cache
+function setCachedPrice(auctionId: string, price: number): void {
+  auctionPriceCache.set(auctionId, price);
+}
 
 interface CardLink {
   id: number;
@@ -70,15 +84,18 @@ interface AuctionsSectionProps {
   userId?: string;
   userName?: string;
   userFavorites?: string[];
+  initialActiveAuctionId?: string;
+  initialLiveStreamActive?: boolean;
 }
 
 
 // Componente de Carousel para las imágenes
-function CardImageCarousel({ images, title, badge, stat }: {
+function CardImageCarousel({ images, title, badge, stat, isSold }: {
   images: CardImage[],
   title: string,
   badge?: string,
-  stat: string
+  stat: string,
+  isSold?: boolean
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -107,7 +124,8 @@ function CardImageCarousel({ images, title, badge, stat }: {
     emblaApi.on("reInit", onSelect);
   }, [emblaApi, onSelect]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, sold?: boolean) => {
+    if (sold) return 'bg-purple-600';
     switch (status) {
       case 'active':
         return 'bg-green-500';
@@ -120,7 +138,8 @@ function CardImageCarousel({ images, title, badge, stat }: {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string, sold?: boolean) => {
+    if (sold) return '🏆 VENDIDO';
     switch (status) {
       case 'active':
         return 'Activo';
@@ -157,8 +176,8 @@ function CardImageCarousel({ images, title, badge, stat }: {
             {badge}
           </Badge>
         )}
-        <Badge className={getStatusColor(stat)}>
-          {getStatusText(stat)}
+        <Badge className={getStatusColor(stat, isSold)}>
+          {getStatusText(stat, isSold)}
         </Badge>
       </div>
 
@@ -271,18 +290,22 @@ function ProductDetails({ quantity, description, measurements }: {
 }
 
 // Componente de tarjeta de remate con sistema de pujas y créditos
-function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits }: { 
-  card: CardItem, 
-  userId?: string, 
+function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits, isInLiveStream }: {
+  card: CardItem,
+  userId?: string,
   userName?: string,
   initialIsFavorite: boolean,
-  sharedCredits: number
+  sharedCredits: number,
+  isInLiveStream?: boolean
 }) {
   const router = useRouter();
   const images = Array.isArray(card.image) ? card.image : [card.image];
-  
+
   const initialPrice = card.Price || 0;
-  const [currentPrice, setCurrentPrice] = useState(initialPrice);
+  const auctionId = card.documentId || card.id.toString();
+
+  // 🔒 Usar precio cacheado si existe, sino el precio inicial de Strapi
+  const [currentPrice, setCurrentPrice] = useState(() => getCachedPrice(auctionId, initialPrice));
   const [bidAmount, setBidAmount] = useState("");
   const [bids, setBids] = useState<Bid[]>([]);
   const [showBidHistory, setShowBidHistory] = useState(false);
@@ -294,9 +317,12 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
   // 🔑 Usar créditos compartidos del padre
   const [userCredits, setUserCredits] = useState(sharedCredits);
   const [showInsufficientCreditsDialog, setShowInsufficientCreditsDialog] = useState(false);
+  // VENDIDO state - for closed auctions with winner
+  const [isSold, setIsSold] = useState(false);
+  const [winningPrice, setWinningPrice] = useState<number | null>(null);
+  const [winnerName, setWinnerName] = useState<string | null>(null);
 
   const minIncrement = 100;
-  const auctionId = card.documentId || card.id.toString();
 
   // 🔑 Sincronizar créditos con el padre
   useEffect(() => {
@@ -317,21 +343,47 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
 
   const loadBids = async () => {
     try {
+      // First check for winner bids (sold auctions)
+      const allBidsResponse = await fetch(`/api/bids?auctionId=${auctionId}&includeWinner=true`, {
+        cache: 'no-store',
+      });
+      const allBidsData = await allBidsResponse.json();
+      const winnerBid = allBidsData.bids?.find((b: any) => b.status === 'winner');
+
+      if (winnerBid) {
+        setIsSold(true);
+        setWinningPrice(winnerBid.amount);
+        setWinnerName(winnerBid.userName || 'Usuario');
+        setCurrentPrice(winnerBid.amount);
+        setCachedPrice(auctionId, winnerBid.amount); // 🔒 Cachear precio ganador
+        setBids([winnerBid]);
+        return;
+      }
+
+      setIsSold(false);
+      setWinningPrice(null);
+      setWinnerName(null);
+
       const bidsData = await getBidsForAuction(auctionId);
-      
+
       if (bidsData && bidsData.length > 0) {
         const sortedBids = bidsData.sort((a: any, b: any) => b.amount - a.amount);
         setBids(sortedBids);
-        
+
         const highestBid = sortedBids[0].amount;
         setCurrentPrice(highestBid);
+        setCachedPrice(auctionId, highestBid); // 🔒 Cachear precio más alto
       } else {
         setBids([]);
-        setCurrentPrice(initialPrice);
+        // Solo usar precio inicial si no hay cache
+        const cachedPrice = getCachedPrice(auctionId, initialPrice);
+        setCurrentPrice(cachedPrice);
       }
     } catch (error) {
       console.error("Error loading bids:", error);
-      setCurrentPrice(initialPrice);
+      // En caso de error, usar precio cacheado si existe
+      const cachedPrice = getCachedPrice(auctionId, initialPrice);
+      setCurrentPrice(cachedPrice);
     } finally {
       setIsLoading(false);
     }
@@ -425,6 +477,7 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
             title={card.title}
             badge={card.badge}
             stat={card.stat}
+            isSold={isSold}
           />
         </div>
 
@@ -470,7 +523,30 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
           </div>
 
           {/* Sistema de pujas - solo para remates activos */}
-          {isActive ? (
+          {isSold ? (
+            <div className="bg-purple-50 border border-purple-300 p-4 rounded-lg text-center">
+              <p className="text-lg font-bold text-purple-800">
+                🏆 VENDIDO
+              </p>
+              <p className="text-xl font-bold text-purple-700 mt-1">
+                ${winningPrice?.toLocaleString()}
+              </p>
+              <p className="text-sm text-purple-600 mt-2">
+                Este lote fue vendido
+              </p>
+            </div>
+          ) : isInLiveStream ? (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center space-y-2">
+              <div className="flex items-center justify-center gap-2 text-purple-700">
+                <Radio className="h-5 w-5 animate-pulse" />
+                <p className="font-semibold">Esta subasta está en el directo</p>
+              </div>
+              <p className="text-sm text-purple-600">Puja desde allí para participar</p>
+              <Link href="/live" className="inline-flex items-center gap-1 text-purple-700 hover:text-purple-900 font-medium text-sm underline">
+                Ir al directo ↑
+              </Link>
+            </div>
+          ) : isActive ? (
             <div className="space-y-3">
               {userId && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -647,20 +723,46 @@ function AuctionCard({ card, userId, userName, initialIsFavorite, sharedCredits 
   );
 }
 
-export function AuctionsSection({ data, userId, userName, userFavorites = [] }: AuctionsSectionProps) {
+export function AuctionsSection({ data, userId, userName, userFavorites = [], initialActiveAuctionId, initialLiveStreamActive }: AuctionsSectionProps) {
   // 🔑 Estado compartido de créditos - una sola request
   const [sharedCredits, setSharedCredits] = useState(0);
+
+  // 🔴 Estado local para config del live stream (polling desde cliente)
+  const [liveStreamActive, setLiveStreamActive] = useState(initialLiveStreamActive || false);
+  const [activeAuctionId, setActiveAuctionId] = useState(initialActiveAuctionId || '');
 
   // 🔑 Cargar créditos UNA SOLA VEZ al inicio
   useEffect(() => {
     if (userId) {
       loadUserCredits();
-      
+
       // ⏱️ Actualizar créditos cada 30 segundos (reducido de constante)
       const interval = setInterval(loadUserCredits, POLLING_INTERVAL);
       return () => clearInterval(interval);
     }
   }, [userId]);
+
+  // 🔴 Polling de config del live stream cada 60 segundos
+  useEffect(() => {
+    const fetchLiveConfig = async () => {
+      try {
+        const response = await fetch('/api/live-stream/config', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          setLiveStreamActive(data.liveStreamActive);
+          setActiveAuctionId(data.activeAuctionId || '');
+        }
+      } catch (error) {
+        console.error('Error fetching live config:', error);
+      }
+    };
+
+    // Fetch inicial al montar
+    fetchLiveConfig();
+
+    const interval = setInterval(fetchLiveConfig, 60000); // 60 segundos
+    return () => clearInterval(interval);
+  }, []);
 
   // 🔑 Escuchar eventos de actualización de créditos
   useEffect(() => {
@@ -688,7 +790,7 @@ export function AuctionsSection({ data, userId, userName, userFavorites = [] }: 
   const { title, subtitle, cards } = data;
 
   return (
-    <section id="auctions" className="py-16 px-4 bg-gray-50">
+    <section  className="py-16 px-4 bg-gray-50">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -705,15 +807,21 @@ export function AuctionsSection({ data, userId, userName, userFavorites = [] }: 
           {cards.map((card) => {
             const auctionId = card.documentId || card.id.toString();
             const isFavorite = userFavorites.includes(auctionId);
-            
+            const isInLiveStream = liveStreamActive && activeAuctionId && (
+              card.documentId === activeAuctionId ||
+              card.id.toString() === activeAuctionId ||
+              card.title === activeAuctionId
+            );
+
             return (
-              <AuctionCard 
-                key={card.id} 
-                card={card} 
+              <AuctionCard
+                key={card.id}
+                card={card}
                 userId={userId}
                 userName={userName}
                 initialIsFavorite={isFavorite}
                 sharedCredits={sharedCredits}
+                isInLiveStream={isInLiveStream}
               />
             );
           })}
